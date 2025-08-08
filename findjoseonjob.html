@@ -64,7 +64,7 @@
         <!-- 시작 화면 -->
         <div id="start-screen" class="text-center p-8 rounded-lg hanji-bg shadow-lg">
             <h1 class="text-4xl md:text-5xl font-bold text-gray-800 mb-4">나의 조선시대 직업 찾기</h1>
-            <p class="text-gray-600 mb-8">간단한 질문으로 알아보는 나의 조선시대 직업!</p>
+            <p class="text-gray-600 mb-8">MBTI처럼 간단한 질문으로 알아보는 나의 조선시대 직업!</p>
             <button id="start-btn" class="bg-[#A88F6F] text-white px-8 py-3 rounded-lg text-xl font-bold btn">시작하기</button>
         </div>
 
@@ -252,7 +252,10 @@
 
                 let chatHistory = [{ role: "user", parts: [{ text: prompt }] }];
                 const payload = { contents: chatHistory };
-                const apiKey = ""; 
+                
+                // [수정됨] 여기에 발급받은 API 키를 붙여넣으세요.
+                const apiKey = "AIzaSyBt0mwT8nogAJuDe-p3AHo-5NfZQenX780"; 
+                
                 const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${apiKey}`;
                 
                 const response = await fetch(apiUrl, {
@@ -268,18 +271,27 @@
                 let resultContentText = "결과를 생성하는 데 문제가 발생했습니다. 잠시 후 다시 시도해주세요.";
                 if (result.candidates && result.candidates.length > 0 && result.candidates[0].content.parts.length > 0) {
                     resultContentText = result.candidates[0].content.parts[0].text.replace(/\n/g, '<br>');
+                } else {
+                    throw new Error("Invalid API response structure");
                 }
 
                 document.getElementById('result-job-name').textContent = resultJob.name;
                 document.getElementById('result-content').innerHTML = resultContentText;
 
             } catch (error) {
-                console.error("API Error:", error);
+                console.error("AI 분석 실패, 기본 추천사를 표시합니다:", error);
+                const fallbackContent = `
+                    당신의 성향을 분석한 결과, <strong>${resultJob.name}</strong>의 자질을 타고났군요!<br><br>
+                    ${resultJob.description}<br><br>
+                    당신의 선택은 이 직업이 필요로 하는 중요한 자질들을 잘 보여주고 있습니다. 앞으로 이 분야에서 멋진 잠재력을 발휘할 수 있을 거예요!
+                `;
                 document.getElementById('result-job-name').textContent = resultJob.name;
-                document.getElementById('result-content').innerHTML = `AI 분석 중 오류가 발생했습니다. 하지만 당신의 성향은 <strong>${resultJob.name}</strong>과 잘 어울립니다!<br><br>${resultJob.description}`;
+                document.getElementById('result-content').innerHTML = fallbackContent;
             }
 
-            showScreen('result-screen');
+            setTimeout(() => {
+                showScreen('result-screen');
+            }, 1500);
         });
 
         retryBtn.addEventListener('click', () => {
@@ -289,7 +301,6 @@
             showScreen('start-screen');
         });
 
-        // [수정됨] 공유하기 버튼: 화면 캡처 후 다운로드 기능
         shareBtn.addEventListener('click', () => {
             const captureArea = document.getElementById('result-capture-area');
             const originalButtonText = shareBtn.textContent;
@@ -297,17 +308,16 @@
             shareBtn.disabled = true;
 
             html2canvas(captureArea, { 
-                scale: 2, // 해상도 높이기
+                scale: 2,
                 useCORS: true,
-                backgroundColor: '#FDFCF7' // 캡처 영역 배경색 지정
+                backgroundColor: '#FDFCF7'
             }).then(canvas => {
                 const link = document.createElement('a');
-                // canvas.toDataURL을 통해 이미지 데이터를 얻고, 다운로드 링크의 href로 설정
                 link.href = canvas.toDataURL('image/png');
-                link.download = '나의_조선시대_직업_결과.png'; // 다운로드될 파일 이름
-                document.body.appendChild(link); // 링크를 DOM에 추가
-                link.click(); // 링크 클릭을 프로그래밍적으로 실행
-                document.body.removeChild(link); // 다운로드 후 링크 제거
+                link.download = '나의_조선시대_직업_결과.png';
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
             }).catch(err => {
                 console.error('화면 캡처 실패:', err);
                 alert('이미지 생성에 실패했습니다.');
