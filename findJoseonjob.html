@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>조선시대 직업 찾기</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Gowun+Dodum&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Gowun Dodum', sans-serif;
+            background-color: #FDFCF7;
+            background-image: url('https://www.transparenttextures.com/patterns/rice-paper-3.png');
+        }
+        .hanji-bg {
+            background-color: rgba(255, 255, 255, 0.8);
+            backdrop-filter: blur(2px);
+        }
+        .btn {
+            transition: all 0.3s ease;
+        }
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+        }
+        .question-card {
+            border: 1px solid #D1C4B0;
+            transition: all 0.3s ease;
+        }
+        .answer-btn {
+            border: 1px solid #EAE3D8;
+            transition: all 0.3s ease;
+        }
+        .answer-btn.selected {
+            background-color: #A88F6F;
+            color: white;
+            border-color: #A88F6F;
+        }
+        .answer-btn:not(.selected):hover {
+            background-color: #F5F1E9;
+        }
+        /* 로딩 스피너 스타일 */
+        .loader {
+            border: 8px solid #f3f3f3;
+            border-radius: 50%;
+            border-top: 8px solid #A88F6F;
+            width: 60px;
+            height: 60px;
+            animation: spin 1.5s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body class="flex items-center justify-center min-h-screen p-4">
+
+    <div id="app" class="w-full max-w-2xl mx-auto">
+
+        <!-- 시작 화면 -->
+        <div id="start-screen" class="text-center p-8 rounded-lg hanji-bg shadow-lg">
+            <h1 class="text-4xl md:text-5xl font-bold text-gray-800 mb-4">나의 조선시대 직업 찾기</h1>
+            <p class="text-gray-600 mb-8">간단한 질문으로 알아보는 나의 조선시대 직업!</p>
+            <button id="start-btn" class="bg-[#A88F6F] text-white px-8 py-3 rounded-lg text-xl font-bold btn">시작하기</button>
+        </div>
+
+        <!-- 질문 화면 -->
+        <div id="question-screen" class="hidden p-6 md:p-8 rounded-lg hanji-bg shadow-lg">
+            <h2 class="text-2xl font-bold text-gray-800 mb-6 text-center">질문에 답해주세요.</h2>
+            <div id="questions-container"></div>
+            
+            <div class="mt-8">
+                 <h3 class="text-xl font-bold text-gray-700 mb-3">추가 질문</h3>
+                 <div class="space-y-4">
+                     <div>
+                         <label for="strengths" class="block text-gray-600 mb-1">내가 잘 하는 것은?</label>
+                         <input type="text" id="strengths" class="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-[#A88F6F] focus:border-transparent transition" placeholder="예: 꼼꼼하게 계획 세우기, 사람들 이야기 들어주기">
+                     </div>
+                     <div>
+                         <label for="weaknesses" class="block text-gray-600 mb-1">내가 잘 못하는 것은?</label>
+                         <input type="text" id="weaknesses" class="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-[#A88F6F] focus:border-transparent transition" placeholder="예: 여러 사람 앞에서 발표하기, 즉흥적으로 행동하기">
+                     </div>
+                 </div>
+            </div>
+
+            <button id="submit-btn" class="w-full mt-8 bg-[#A88F6F] text-white px-8 py-3 rounded-lg text-xl font-bold btn">결과 분석하기</button>
+        </div>
+
+        <!-- 로딩 화면 -->
+        <div id="loading-screen" class="hidden text-center p-8">
+            <div class="flex justify-center mb-4">
+                <div class="loader"></div>
+            </div>
+            <h2 class="text-2xl font-bold text-gray-700">AI가 당신의 답변을 분석하고 있습니다...</h2>
+            <p class="text-gray-600 mt-2">당신에게 꼭 맞는 조선시대 직업을 찾고 있어요!</p>
+        </div>
+
+        <!-- 결과 화면 -->
+        <div id="result-screen" class="p-6 md:p-8 rounded-lg hanji-bg shadow-lg hidden">
+            <div id="result-capture-area">
+                <h2 class="text-2xl font-bold text-gray-800 mb-2 text-center">AI가 추천하는 당신의 직업은...</h2>
+                <div id="result-job-name" class="text-4xl font-bold text-[#A88F6F] text-center mb-6"></div>
+                <div id="result-content" class="text-gray-700 leading-relaxed bg-gray-50 p-6 rounded-lg border border-gray-200"></div>
+            </div>
+            <div class="flex space-x-4 mt-8">
+                <button id="share-btn" class="flex-1 bg-gray-600 text-white px-6 py-2 rounded-lg font-bold btn">결과 이미지 다운로드</button>
+                <button id="retry-btn" class="flex-1 bg-[#A88F6F] text-white px-6 py-2 rounded-lg font-bold btn">다시하기</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const startScreen = document.getElementById('start-screen');
+        const questionScreen = document.getElementById('question-screen');
+        const loadingScreen = document.getElementById('loading-screen');
+        const resultScreen = document.getElementById('result-screen');
+        
+        const startBtn = document.getElementById('start-btn');
+        const submitBtn = document.getElementById('submit-btn');
+        const shareBtn = document.getElementById('share-btn');
+        const retryBtn = document.getElementById('retry-btn');
+
+        const questionsContainer = document.getElementById('questions-container');
+
+        // 직업 데이터
+        const jobs = {
+            '학자': { name: '성균관 유생', description: '조선 최고의 학문 기관에서 유학을 공부하고, 왕립 도서관에서 책을 관리하며 학문을 연구하던 지식인 그룹입니다. 과거를 통해 관리가 되는 것을 목표로 끊임없이 학문을 탐구했습니다.' },
+            '기록관': { name: '사관', description: '왕의 언행과 나라의 모든 사건을 하나도 빠짐없이 기록하여 역사에 남기는 중요한 임무를 수행했습니다. 이들의 기록은 \'조선왕조실록\'의 기초가 되었습니다.' },
+            '외교관': { name: '역관', description: '외국어에 능통하여 사신 접대, 무역, 외교 교섭 등 국가 간의 소통을 책임지던 전문 외교관입니다.' },
+            '예술가': { name: '화원', description: '그림, 음악 등 다양한 예술 분야에서 재능을 발휘하던 전문가들입니다. 도화서에서 그림을 그리거나, 장악원에서 궁중 음악을 연주하며 나라의 문화적 품격을 높였습니다.' },
+            '기술 장인': { name: '도편수', description: '건축, 공예 등 특정 기술 분야의 전문가입니다. 궁궐을 짓는 대목수부터 그릇을 빚는 사기장까지, 손재주와 전문성으로 실생활에 필요한 모든 것을 만들어냈습니다.' },
+            '과학자': { name: '천문학자', description: '관상감에 소속되어 천문, 지리, 역법 등 자연 과학을 연구하던 학자입니다. 하늘의 움직임을 관찰하여 달력을 만들고 날씨를 예측하는 등 국가 운영에 필수적인 정보를 제공했습니다.' },
+            '의관': { name: '의관', description: '내의원, 혜민서 등에서 의술을 펼치며 왕실과 백성의 질병을 치료하고 건강을 돌보던 의사입니다.' },
+            '법 집행관': { name: '나장', description: '포도청이나 의금부 소속으로 범죄를 수사하고 죄인을 체포하며 사회 질서를 유지하던 관리입니다. 여성 관련 범죄는 여성 수사관인 다모가 담당하기도 했습니다.' },
+            '군관': { name: '군관', description: '군영에 소속되어 나라를 지키던 무관입니다. 병사들을 훈련시키고 전투를 지휘하며 국방의 최전선에 섰습니다.' },
+            '상인': { name: '보부상', description: '전국을 누비며 물건이나 책을 유통시키던 상인입니다. 장시를 연결하며 경제의 혈맥 역할을 했고, 지식과 정보가 퍼지는 데 중요한 역할을 담당했습니다.' },
+            '궁중 전문직': { name: '상궁', description: '궁궐 내 각 부서의 실무를 책임지던 전문직 여성입니다. 음식, 의복, 의례 등 각 분야의 전문성을 바탕으로 궁궐의 살림을 총괄했습니다.' }
+        };
+
+        // 질문 데이터
+        const questions = [
+            { q: "당신에게 복잡하고 낯선 문제가 주어졌습니다. 가장 먼저 무엇을 할 건가요?", a: [{ text: "관련된 책이나 자료를 찾아보며 원리부터 체계적으로 분석한다.", types: ["학자", "과학자", "의관"] }, { text: "일단 부딪혀보며 감각적으로 해결 방법을 찾아 나선다.", types: ["기술 장인", "상인", "군관"] }] },
+            { q: "큰 잔치가 열려 많은 사람들을 만났습니다. 당신은 어떤 모습에 가까운가요?", a: [{ text: "새로운 사람들과 적극적으로 어울리며 대화를 주도한다.", types: ["상인", "외교관", "군관"] }, { text: "조용한 곳에서 사람들의 행동이나 분위기를 유심히 관찰한다.", types: ["기록관", "의관", "법 집행관"] }] },
+            { q: "팀 프로젝트를 진행할 때, 당신이 더 선호하는 역할은 무엇인가요?", a: [{ text: "전체적인 방향을 제시하고 각 팀원의 역할을 조율하는 리더 역할.", types: ["군관", "기술 장인", "궁중 전문직"] }, { text: "내가 맡은 분야를 깊게 파고들어 최고의 결과물을 만들어내는 전문가 역할.", types: ["예술가", "과학자", "기술 장인"] }] },
+            { q: "당신이 가장 큰 보람을 느끼는 순간은 언제인가요?", a: [{ text: "아무도 풀지 못했던 어려운 지적 과제를 마침내 해결했을 때.", types: ["학자", "과학자", "의관"] }, { text: "불의를 바로잡거나, 나의 행동이 공동체에 좋은 영향을 주었을 때.", types: ["법 집행관", "기록관", "군관"] }, { text: "나의 손으로 아름답거나 실용적인 것을 완성하여 사람들에게 선보일 때.", types: ["예술가", "기술 장인"] }] },
+            { q: "오랜 시간 지켜져 온 규칙이나 관습을 마주했을 때, 당신의 생각은?", a: [{ text: "그 안에는 분명 깊은 뜻과 지혜가 담겨 있을 것이므로 존중하고 따른다.", types: ["학자", "궁중 전문직", "기록관"] }, { text: "비효율적이거나 불합리한 점이 있다면, 더 나은 방식으로 개선해야 한다.", types: ["상인", "기술 장인", "외교관"] }] },
+            { q: "위급하고 혼란스러운 상황이 발생했습니다. 당신의 첫 반응은?", a: [{ text: "즉시 앞으로 나서 상황을 정리하고 행동으로 옮긴다.", types: ["군관", "법 집행관", "상인"] }, { text: "한 걸음 물러서서 침착하게 상황을 파악하고 최선의 수를 계산한다.", types: ["의관", "과학자", "궁중 전문직"] }] },
+            { q: "당신의 눈에 더 잘 들어오는 것은 무엇인가요?", a: [{ text: "전체적인 흐름 속에서 놓치고 있는 큰 그림이나 전략.", types: ["군관", "기술 장인", "상인"] }, { text: "남들이 그냥 지나치는 작은 실수나 미세한 변화, 디테일.", types: ["의관", "기록관", "예술가"] }] },
+            { q: "새로운 것을 배울 때, 당신에게 더 효과적인 방법은?", a: [{ text: "책과 이론을 통해 완벽하게 이해한 후 실제에 적용한다.", types: ["학자", "과학자", "외교관"] }, { text: "직접 체험하고 여러 번 시도해보는 과정 속에서 노하우를 터득한다.", types: ["기술 장인", "상인", "군관"] }] },
+            { q: "위험 부담이 있지만 성공 시 큰 보상이 따르는 기회가 찾아왔습니다.", a: [{ text: "실패 가능성을 먼저 따져보고, 안정적인 길을 선택한다.", types: ["궁중 전문직", "학자", "기록관"] }, { text: "실패하더라도 배울 점이 있다면, 과감하게 도전한다.", types: ["상인", "외교관", "군관"] }] },
+            { q: "당신은 어떤 능력이 더 중요하다고 생각하나요?", a: [{ text: "사물의 본질과 진실을 꿰뚫어 보는 날카로운 통찰력.", types: ["의관", "법 집행관", "과학자"] }, { text: "서로 다른 사람들을 하나로 융화시키고 이끄는 부드러운 소통 능력.", types: ["외교관", "상인", "궁중 전문직"] }] }
+        ];
+
+        let userAnswers = {};
+
+        function renderQuestions() {
+            questionsContainer.innerHTML = '';
+            questions.forEach((item, index) => {
+                const questionEl = document.createElement('div');
+                questionEl.className = 'mb-6 p-4 rounded-lg question-card';
+                
+                let answersHtml = '';
+                item.a.forEach((answer, answerIndex) => {
+                    answersHtml += `<button data-q-index="${index}" data-a-index="${answerIndex}" class="answer-btn w-full text-left p-3 mt-2 rounded-md">${answer.text}</button>`;
+                });
+
+                questionEl.innerHTML = `
+                    <p class="font-bold text-lg text-gray-700">${index + 1}. ${item.q}</p>
+                    <div class="mt-2">${answersHtml}</div>
+                `;
+                questionsContainer.appendChild(questionEl);
+            });
+            
+            document.querySelectorAll('.answer-btn').forEach(button => {
+                button.addEventListener('click', () => {
+                    const qIndex = button.dataset.qIndex;
+                    const aIndex = button.dataset.aIndex;
+                    userAnswers[qIndex] = aIndex;
+                    
+                    document.querySelectorAll(`.answer-btn[data-q-index="${qIndex}"]`).forEach(btn => {
+                        btn.classList.remove('selected');
+                    });
+                    button.classList.add('selected');
+                });
+            });
+        }
+
+        function showScreen(screenId) {
+            ['start-screen', 'question-screen', 'loading-screen', 'result-screen'].forEach(id => {
+                document.getElementById(id).classList.add('hidden');
+            });
+            document.getElementById(screenId).classList.remove('hidden');
+        }
+
+        startBtn.addEventListener('click', () => {
+            renderQuestions();
+            showScreen('question-screen');
+        });
+
+        submitBtn.addEventListener('click', async () => {
+            if (Object.keys(userAnswers).length < questions.length) {
+                alert('모든 선택형 질문에 답해주세요!');
+                return;
+            }
+
+            showScreen('loading-screen');
+
+            const scores = {};
+            Object.keys(jobs).forEach(jobType => scores[jobType] = 0);
+
+            for (const qIndex in userAnswers) {
+                const aIndex = userAnswers[qIndex];
+                const selectedAnswer = questions[qIndex].a[aIndex];
+                selectedAnswer.types.forEach(type => {
+                    if (scores[type] !== undefined) {
+                        scores[type]++;
+                    }
+                });
+            }
+
+            let maxScore = -1;
+            let resultJobType = '';
+            for (const jobType in scores) {
+                if (scores[jobType] > maxScore) {
+                    maxScore = scores[jobType];
+                    resultJobType = jobType;
+                }
+            }
+            
+            const resultJob = jobs[resultJobType];
+            const strengths = document.getElementById('strengths').value;
+            const weaknesses = document.getElementById('weaknesses').value;
+            
+            try {
+                const prompt = `
+                당신은 조선시대 직업 상담가입니다. 사용자의 성향 분석 결과 가장 어울리는 직업은 '${resultJob.name}'입니다.
+                이 직업의 설명은 다음과 같습니다: "${resultJob.description}"
+                사용자는 스스로의 장점을 "${strengths || '특별히 작성하지 않음'}"이라고 말했고, 단점을 "${weaknesses || '특별히 작성하지 않음'}"이라고 말했습니다.
+                이 모든 정보를 종합하여, 사용자에게 '${resultJob.name}'이 왜 잘 어울리는지 따뜻하고 희망적인 어조로 설명해주세요.
+                사용자의 장점과 직업의 특성을 연결지어 구체적으로 칭찬하고 격려하는 내용을 포함해주세요.
+                결과는 아래 형식에 맞춰 한글로 작성해주세요.
+
+                [결과 형식]
+                - 첫 문단: 당신의 성향을 분석한 결과, [직업명]의 자질을 타고났군요! 와 같이 축하하는 문장.
+                - 중간 문단: 직업에 대한 간단한 소개와 함께, 사용자의 성향과 장점이 이 직업에 어떻게 긍정적으로 작용할지 구체적인 예시를 들어 설명.
+                - 마지막 문단: 사용자의 단점은 이 직업을 수행하며 충분히 극복하거나 다른 장점으로 승화시킬 수 있다는 희망적인 메시지로 마무리.
+                `;
+
+                let chatHistory = [{ role: "user", parts: [{ text: prompt }] }];
+                const payload = { contents: chatHistory };
+                const apiKey = ""; 
+                const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${apiKey}`;
+                
+                const response = await fetch(apiUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                if (!response.ok) throw new Error(`API 요청 실패: ${response.status}`);
+
+                const result = await response.json();
+                
+                let resultContentText = "결과를 생성하는 데 문제가 발생했습니다. 잠시 후 다시 시도해주세요.";
+                if (result.candidates && result.candidates.length > 0 && result.candidates[0].content.parts.length > 0) {
+                    resultContentText = result.candidates[0].content.parts[0].text.replace(/\n/g, '<br>');
+                }
+
+                document.getElementById('result-job-name').textContent = resultJob.name;
+                document.getElementById('result-content').innerHTML = resultContentText;
+
+            } catch (error) {
+                console.error("API Error:", error);
+                document.getElementById('result-job-name').textContent = resultJob.name;
+                document.getElementById('result-content').innerHTML = `AI 분석 중 오류가 발생했습니다. 하지만 당신의 성향은 <strong>${resultJob.name}</strong>과 잘 어울립니다!<br><br>${resultJob.description}`;
+            }
+
+            showScreen('result-screen');
+        });
+
+        retryBtn.addEventListener('click', () => {
+            userAnswers = {};
+            document.getElementById('strengths').value = '';
+            document.getElementById('weaknesses').value = '';
+            showScreen('start-screen');
+        });
+
+        // [수정됨] 공유하기 버튼: 화면 캡처 후 다운로드 기능
+        shareBtn.addEventListener('click', () => {
+            const captureArea = document.getElementById('result-capture-area');
+            const originalButtonText = shareBtn.textContent;
+            shareBtn.textContent = '이미지 생성 중...';
+            shareBtn.disabled = true;
+
+            html2canvas(captureArea, { 
+                scale: 2, // 해상도 높이기
+                useCORS: true,
+                backgroundColor: '#FDFCF7' // 캡처 영역 배경색 지정
+            }).then(canvas => {
+                const link = document.createElement('a');
+                // canvas.toDataURL을 통해 이미지 데이터를 얻고, 다운로드 링크의 href로 설정
+                link.href = canvas.toDataURL('image/png');
+                link.download = '나의_조선시대_직업_결과.png'; // 다운로드될 파일 이름
+                document.body.appendChild(link); // 링크를 DOM에 추가
+                link.click(); // 링크 클릭을 프로그래밍적으로 실행
+                document.body.removeChild(link); // 다운로드 후 링크 제거
+            }).catch(err => {
+                console.error('화면 캡처 실패:', err);
+                alert('이미지 생성에 실패했습니다.');
+            }).finally(() => {
+                shareBtn.textContent = originalButtonText;
+                shareBtn.disabled = false;
+            });
+        });
+
+    </script>
+</body>
+</html>
