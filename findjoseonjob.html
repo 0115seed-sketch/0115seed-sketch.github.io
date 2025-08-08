@@ -66,6 +66,9 @@
             <h1 class="text-4xl md:text-5xl font-bold text-gray-800 mb-4">나의 조선시대 직업 찾기</h1>
             <p class="text-gray-600 mb-8">MBTI처럼 간단한 질문으로 알아보는 나의 조선시대 직업!</p>
             <button id="start-btn" class="bg-[#A88F6F] text-white px-8 py-3 rounded-lg text-xl font-bold btn">시작하기</button>
+            <div class="mt-6">
+                <a href="index.html" class="text-gray-500 hover:text-gray-700 transition duration-300 ease-in-out">&larr; Hwant의 홈페이지로 돌아가기</a>
+            </div>
         </div>
 
         <!-- 질문 화면 -->
@@ -106,9 +109,9 @@
                 <div id="result-job-name" class="text-4xl font-bold text-[#A88F6F] text-center mb-6"></div>
                 <div id="result-content" class="text-gray-700 leading-relaxed bg-gray-50 p-6 rounded-lg border border-gray-200"></div>
             </div>
-            <div class="flex space-x-4 mt-8">
-                <button id="share-btn" class="flex-1 bg-gray-600 text-white px-6 py-2 rounded-lg font-bold btn">결과 이미지 다운로드</button>
-                <button id="retry-btn" class="flex-1 bg-[#A88F6F] text-white px-6 py-2 rounded-lg font-bold btn">다시하기</button>
+            <div class="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-4 mt-8">
+                <button id="share-btn" class="w-full sm:w-auto flex-1 bg-gray-600 text-white px-4 py-2 rounded-lg font-bold btn">결과 이미지 다운로드</button>
+                <button id="retry-btn" class="w-full sm:w-auto flex-1 bg-[#A88F6F] text-white px-4 py-2 rounded-lg font-bold btn">다시하기</button>
             </div>
         </div>
     </div>
@@ -253,8 +256,7 @@
                 let chatHistory = [{ role: "user", parts: [{ text: prompt }] }];
                 const payload = { contents: chatHistory };
                 
-                // [수정됨] 여기에 발급받은 API 키를 붙여넣으세요.
-                const apiKey = "AIzaSyBt0mwT8nogAJuDe-p3AHo-5NfZQenX780"; 
+                const apiKey = "여기에_발급받은_API_키를_붙여넣으세요"; 
                 
                 const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${apiKey}`;
                 
