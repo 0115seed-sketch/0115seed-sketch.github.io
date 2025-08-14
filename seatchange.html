@@ -1,0 +1,405 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>자리 바꾸기 프로그램</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Noto Sans KR', sans-serif;
+        }
+        .nav-link.active {
+            border-color: #3b82f6;
+            color: #3b82f6;
+            background-color: #eff6ff;
+        }
+        .desk {
+            transition: all 0.2s ease-in-out;
+            cursor: pointer;
+        }
+        .desk.selected {
+            transform: scale(1.05);
+            box-shadow: 0 0 0 3px #60a5fa; /* ring-blue-400 */
+        }
+        .desk.locked {
+            background-color: #fca5a5 !important; /* red-300 */
+            color: #7f1d1d; /* red-900 */
+        }
+        #countdown-overlay {
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            background-color: rgba(0,0,0,0.7);
+            z-index: 9999;
+        }
+        #countdown-text {
+            font-size: 15rem;
+            color: white;
+            font-weight: 700;
+            animation: countdown-pulse 1s infinite;
+        }
+        @keyframes countdown-pulse {
+            0%, 100% { transform: scale(1); opacity: 1; }
+            50% { transform: scale(1.1); opacity: 0.8; }
+        }
+    </style>
+</head>
+<body class="bg-gray-100">
+
+    <div class="container mx-auto p-4 max-w-7xl">
+        <!-- 네비게이션 -->
+        <nav class="flex bg-white rounded-lg shadow-sm mb-4">
+            <a id="nav-main" class="nav-link flex-1 py-3 px-2 text-center font-bold text-gray-600 cursor-pointer border-b-4 border-transparent active">자리 배치</a>
+            <a id="nav-settings" class="nav-link flex-1 py-3 px-2 text-center font-bold text-gray-600 cursor-pointer border-b-4 border-transparent">설정</a>
+        </nav>
+
+        <!-- 페이지 1: 자리 배치 -->
+        <div id="page-main" class="page">
+            <div class="bg-white p-6 rounded-lg shadow">
+                <div class="flex flex-wrap justify-between items-center mb-6 gap-4">
+                    <h2 class="text-2xl font-bold text-gray-800">자리 배치도</h2>
+                    <div class="flex items-center gap-2">
+                        <button id="randomize-btn" class="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded-lg transition-transform transform hover:scale-105">🎲 랜덤 배치</button>
+                        <button id="save-image-btn" class="bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-4 rounded-lg transition-transform transform hover:scale-105">🖼️ 이미지로 저장</button>
+                    </div>
+                </div>
+                <div id="seating-chart-area">
+                    <!-- 교탁 -->
+                    <div class="w-1/3 mx-auto mb-8 p-4 bg-yellow-200 border-2 border-yellow-400 rounded-lg text-center font-bold text-yellow-800">교탁</div>
+                    <!-- 자리 배치도 컨테이너 -->
+                    <div id="seating-chart-container" class="flex justify-around gap-4">
+                        <!-- 분단은 JS로 생성 -->
+                    </div>
+                </div>
+                 <div class="mt-6 p-4 bg-gray-50 rounded-lg">
+                    <h3 class="font-semibold text-gray-700 mb-2">💡 사용 방법</h3>
+                    <ul class="list-disc list-inside text-sm text-gray-600 space-y-1">
+                        <li><strong>자리 바꾸기:</strong> 바꿀 두 학생의 자리를 차례로 클릭하세요.</li>
+                        <li><strong>자리 고정하기:</strong> 학생 자리를 <kbd>Shift</kbd> 키를 누른 채 클릭하여 고정/해제할 수 있습니다. 고정된 자리는 랜덤 배치 시 바뀌지 않습니다.</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- 페이지 2: 설정 -->
+        <div id="page-settings" class="page hidden">
+            <div class="bg-white p-6 rounded-lg shadow">
+                <h2 class="text-2xl font-bold text-gray-800 mb-6">설정</h2>
+                <div class="grid md:grid-cols-2 gap-8">
+                    <!-- 학생 명단 설정 -->
+                    <div>
+                        <h3 class="text-lg font-bold text-gray-700 mb-2">학생 명단</h3>
+                        <p class="text-sm text-gray-500 mb-3">학생 번호와 이름을 한 줄에 한 명씩 입력하세요. (예: 1 김민준)</p>
+                        <textarea id="student-list" rows="12" class="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-400" placeholder="1 이서연&#10;2 박도윤&#10;3 김하은&#10;..."></textarea>
+                    </div>
+                    <!-- 자리 배치도 수정 -->
+                    <div>
+                        <h3 class="text-lg font-bold text-gray-700 mb-2">자리 배치도 수정</h3>
+                        <p class="text-sm text-gray-500 mb-3">클릭하여 책상(⬛)과 빈 공간(⬜)을 설정하세요.</p>
+                        <div id="layout-editor" class="grid grid-cols-6 gap-2 p-4 bg-gray-100 rounded-md">
+                            <!-- JS로 6x6 그리드 생성 -->
+                        </div>
+                    </div>
+                </div>
+                <div class="mt-8 text-right">
+                    <button id="save-settings-btn" class="bg-indigo-500 hover:bg-indigo-600 text-white font-bold py-2 px-5 rounded-lg transition-transform transform hover:scale-105">💾 설정 저장</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 카운트다운 오버레이 -->
+    <div id="countdown-overlay" class="hidden justify-center items-center">
+        <div id="countdown-text"></div>
+    </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    // DOM Elements
+    const pages = {
+        main: document.getElementById('page-main'),
+        settings: document.getElementById('page-settings'),
+    };
+    const navs = {
+        main: document.getElementById('nav-main'),
+        settings: document.getElementById('nav-settings'),
+    };
+    const studentListTextArea = document.getElementById('student-list');
+    const layoutEditor = document.getElementById('layout-editor');
+    const saveSettingsBtn = document.getElementById('save-settings-btn');
+    const seatingChartContainer = document.getElementById('seating-chart-container');
+    const randomizeBtn = document.getElementById('randomize-btn');
+    const saveImageBtn = document.getElementById('save-image-btn');
+    const countdownOverlay = document.getElementById('countdown-overlay');
+    const countdownText = document.getElementById('countdown-text');
+
+    // App State
+    let students = [];
+    let layout = [];
+    let seatAssignments = [];
+    let selectedDesk = null;
+
+    // --- 기본 설정 ---
+    const DEFAULT_LAYOUT = Array.from({ length: 36 }, (_, i) => ({ isDesk: true, id: i }));
+    const DEFAULT_STUDENTS_TEXT = Array.from({length: 36}, (_, i) => `${i+1} 학생${i+1}`).join('\n');
+
+    // --- 페이지 전환 ---
+    function switchPage(pageName) {
+        Object.values(pages).forEach(p => p.classList.add('hidden'));
+        Object.values(navs).forEach(n => n.classList.remove('active'));
+        pages[pageName].classList.remove('hidden');
+        navs[pageName].classList.add('active');
+    }
+    navs.main.addEventListener('click', () => switchPage('main'));
+    navs.settings.addEventListener('click', () => switchPage('settings'));
+
+    // --- 설정 페이지 ---
+    function saveSettings() {
+        students = studentListTextArea.value.split('\n')
+            .map(line => line.trim())
+            .filter(Boolean)
+            .map((line, index) => {
+                const parts = line.split(/\s+/);
+                const id = parts[0];
+                const name = parts.slice(1).join(' ');
+                return { id: id || (index + 1), name: name || line };
+            });
+        localStorage.setItem('students', JSON.stringify(students));
+
+        const deskElements = Array.from(layoutEditor.children);
+        layout = deskElements.map((desk, i) => ({ isDesk: desk.dataset.isDesk === 'true', id: i }));
+        localStorage.setItem('layout', JSON.stringify(layout));
+        
+        alert('설정이 저장되었습니다.');
+        initializeMainPage();
+    }
+
+    function loadSettings() {
+        const savedStudentsStr = localStorage.getItem('students');
+        const savedLayoutStr = localStorage.getItem('layout');
+
+        if (savedStudentsStr) {
+            students = JSON.parse(savedStudentsStr);
+        } else {
+            students = DEFAULT_STUDENTS_TEXT.split('\n').map((line, index) => {
+                const parts = line.split(/\s+/);
+                return { id: parts[0], name: parts.slice(1).join(' ') };
+            });
+            localStorage.setItem('students', JSON.stringify(students));
+        }
+        studentListTextArea.value = students.map(s => `${s.id} ${s.name}`).join('\n');
+
+        if (savedLayoutStr) {
+            layout = JSON.parse(savedLayoutStr);
+        } else {
+            layout = DEFAULT_LAYOUT;
+            localStorage.setItem('layout', JSON.stringify(layout));
+        }
+    }
+
+    function renderLayoutEditor() {
+        layoutEditor.innerHTML = '';
+        layout.forEach(cell => {
+            const cellDiv = document.createElement('div');
+            cellDiv.className = 'w-12 h-12 border flex items-center justify-center cursor-pointer';
+            cellDiv.dataset.id = cell.id;
+            cellDiv.dataset.isDesk = cell.isDesk;
+            cellDiv.style.backgroundColor = cell.isDesk ? '#9ca3af' : '#f3f4f6';
+            cellDiv.addEventListener('click', () => {
+                cellDiv.dataset.isDesk = cellDiv.dataset.isDesk === 'true' ? 'false' : 'true';
+                cellDiv.style.backgroundColor = cellDiv.dataset.isDesk === 'true' ? '#9ca3af' : '#f3f4f6';
+            });
+            layoutEditor.appendChild(cellDiv);
+        });
+    }
+
+    // --- 메인 페이지 ---
+    function initializeMainPage() {
+        const deskCells = layout.filter(c => c.isDesk);
+        const oldAssignments = JSON.parse(localStorage.getItem('seatAssignments')) || [];
+        
+        const newAssignments = [];
+        const availableStudents = [...students];
+
+        deskCells.forEach(desk => {
+            const oldAssignment = oldAssignments.find(a => a.deskId === desk.id);
+            let studentId = null;
+            let locked = false;
+
+            if (oldAssignment) {
+                const studentIndex = availableStudents.findIndex(s => s.id == oldAssignment.studentId);
+                if (studentIndex > -1) {
+                    studentId = oldAssignment.studentId;
+                    availableStudents.splice(studentIndex, 1);
+                }
+                locked = oldAssignment.locked;
+            }
+            
+            newAssignments.push({
+                deskId: desk.id,
+                studentId: studentId,
+                locked: locked
+            });
+        });
+
+        newAssignments.forEach(assignment => {
+            if (assignment.studentId === null && availableStudents.length > 0) {
+                const studentToAssign = availableStudents.shift();
+                assignment.studentId = studentToAssign.id;
+            }
+        });
+
+        seatAssignments = newAssignments;
+        renderSeatingChart();
+        saveAssignments();
+    }
+    
+    // --- 자리 배치도 렌더링 (핵심 로직 수정) ---
+    function renderSeatingChart() {
+        seatingChartContainer.innerHTML = '';
+        const groups = [ document.createElement('div'), document.createElement('div'), document.createElement('div') ];
+        groups.forEach(g => {
+            g.className = 'grid grid-cols-2 gap-3';
+            seatingChartContainer.appendChild(g);
+        });
+        
+        for (let row = 0; row < 6; row++) {
+            for (let col = 0; col < 6; col++) {
+                const cellId = row * 6 + col;
+                const deskCell = layout.find(c => c.id === cellId);
+                const groupIndex = col < 2 ? 0 : (col < 4 ? 1 : 2);
+
+                if (deskCell && deskCell.isDesk) {
+                    // 책상이 있는 경우
+                    const assignment = seatAssignments.find(a => a.deskId === deskCell.id);
+                    const student = assignment ? students.find(s => s.id == assignment.studentId) : null;
+                    
+                    const deskDiv = document.createElement('div');
+                    deskDiv.className = 'desk w-28 h-20 border-2 rounded-md flex flex-col items-center justify-center p-1';
+                    deskDiv.dataset.deskId = deskCell.id;
+
+                    if (student) {
+                        deskDiv.innerHTML = `<span class="font-bold text-lg">${student.name}</span><span class="text-xs text-gray-600">(${student.id})</span>`;
+                        deskDiv.classList.add('bg-blue-100', 'border-blue-300');
+                    } else {
+                        deskDiv.innerHTML = `<span class="text-gray-400">빈자리</span>`;
+                        deskDiv.classList.add('bg-gray-100', 'border-gray-300');
+                    }
+                    if (assignment && assignment.locked) deskDiv.classList.add('locked');
+                    deskDiv.addEventListener('click', handleDeskClick);
+                    groups[groupIndex].appendChild(deskDiv);
+
+                } else {
+                    // 책상이 없는 경우, 빈 공간으로 렌더링
+                    const placeholderDiv = document.createElement('div');
+                    placeholderDiv.className = 'w-28 h-20'; // 크기만 차지하는 빈 div
+                    groups[groupIndex].appendChild(placeholderDiv);
+                }
+            }
+        }
+    }
+
+    function handleDeskClick(e) {
+        const clickedDeskId = parseInt(e.currentTarget.dataset.deskId, 10);
+        const assignmentIndex = seatAssignments.findIndex(a => a.deskId === clickedDeskId);
+
+        if (e.shiftKey) {
+            seatAssignments[assignmentIndex].locked = !seatAssignments[assignmentIndex].locked;
+            e.currentTarget.classList.toggle('locked');
+            saveAssignments();
+            return;
+        }
+
+        if (selectedDesk === null) {
+            selectedDesk = e.currentTarget;
+            selectedDesk.classList.add('selected');
+        } else {
+            if (selectedDesk !== e.currentTarget) {
+                const firstDeskId = parseInt(selectedDesk.dataset.deskId, 10);
+                const firstIndex = seatAssignments.findIndex(a => a.deskId === firstDeskId);
+                const secondIndex = assignmentIndex;
+
+                [seatAssignments[firstIndex].studentId, seatAssignments[secondIndex].studentId] = 
+                [seatAssignments[secondIndex].studentId, seatAssignments[firstIndex].studentId];
+                
+                renderSeatingChart();
+                saveAssignments();
+            }
+            selectedDesk.classList.remove('selected');
+            selectedDesk = null;
+        }
+    }
+
+    function startRandomize() {
+        const unlockedAssignments = seatAssignments.filter(a => !a.locked && a.studentId);
+        const unlockedStudentIds = unlockedAssignments.map(a => a.studentId);
+
+        if (unlockedStudentIds.length < 2) {
+            alert('고정되지 않고 학생이 배정된 자리가 2개 이상이어야 합니다.');
+            return;
+        }
+
+        for (let i = unlockedStudentIds.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [unlockedStudentIds[i], unlockedStudentIds[j]] = [unlockedStudentIds[j], unlockedStudentIds[i]];
+        }
+
+        let studentIndex = 0;
+        seatAssignments.forEach(assignment => {
+            if (!assignment.locked && assignment.studentId) {
+                assignment.studentId = unlockedStudentIds[studentIndex] || null;
+                studentIndex++;
+            }
+        });
+
+        let count = 3;
+        countdownOverlay.classList.remove('hidden');
+        countdownOverlay.classList.add('flex');
+        countdownText.textContent = count;
+        
+        const timer = setInterval(() => {
+            count--;
+            if (count > 0) {
+                countdownText.textContent = count;
+            } else {
+                clearInterval(timer);
+                countdownOverlay.classList.add('hidden');
+                countdownOverlay.classList.remove('flex');
+                renderSeatingChart();
+                saveAssignments();
+            }
+        }, 1000);
+    }
+    
+    function saveAssignments() {
+        localStorage.setItem('seatAssignments', JSON.stringify(seatAssignments));
+    }
+    
+    function saveAsImage() {
+        const chartArea = document.getElementById('seating-chart-area');
+        html2canvas(chartArea, { scale: 2, backgroundColor: '#ffffff' }).then(canvas => {
+            const link = document.createElement('a');
+            link.download = 'seating-chart.png';
+            link.href = canvas.toDataURL('image/png');
+            link.click();
+        });
+    }
+
+    function init() {
+        loadSettings();
+        renderLayoutEditor();
+        initializeMainPage();
+
+        saveSettingsBtn.addEventListener('click', saveSettings);
+        randomizeBtn.addEventListener('click', startRandomize);
+        saveImageBtn.addEventListener('click', saveAsImage);
+    }
+
+    init();
+});
+</script>
+</body>
+</html>
