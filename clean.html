@@ -57,7 +57,7 @@
         <div class="space-y-6">
             <div>
                 <label for="student-count" class="block text-sm font-medium text-gray-700 mb-1">번호 범위 (총 학생 수)</label>
-                <input type="number" id="student-count" min="1" placeholder="예: 25" class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
+                <input type="number" id="student-count" min="1" placeholder="예: 30" class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
             </div>
             <div>
                 <label for="cleaning-areas" class="block text-sm font-medium text-gray-700 mb-1">청소구역 목록 (한 줄에 하나씩 입력)</label>
@@ -90,8 +90,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const randomAssignBtn = document.getElementById('random-assign-btn');
 
     // 기본 설정값
-    const DEFAULT_STUDENT_COUNT = 25;
-    const DEFAULT_AREAS = ['교실 바닥', '교실 창문', '복도', '계단', '분리수거장', '칠판 및 게시판'];
+    const DEFAULT_STUDENT_COUNT = 30;
+    const DEFAULT_AREAS = ['교실 앞 쓸기1','교실 앞 쓸기2', '교실 뒤 쓸기1','교실 뒤 쓸기2', '1분단 쓸기1', '1분단 쓸기2', '2분단 쓸기1', '2분단 쓸기2', '3분단 쓸기1', '3분단 쓸기2', '1분단 책상 줄 맞추기1', '1분단 책상 줄 맞추기2', '2분단 책상 줄 맞추기1', '2분단 책상 줄 맞추기2', '3분단 책상 줄 맞추기1', '3분단 책상 줄 맞추기2', '복도 쓸기', '출석부 관리자', '전선 관리자', '핸드폰 관리자1', '핸드폰 관리자2' '게시판 관리자', '칠판 관리자', '에너지 지킴이', '공기 지킴이', '환경 지킴이'];
 
     // 페이지 전환 로직
     function showPage(pageToShow) {
@@ -198,3 +198,4 @@ document.addEventListener('DOMContentLoaded', () => {
 
 </body>
 </html>
+
