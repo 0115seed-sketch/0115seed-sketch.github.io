@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <title>방명록</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body { background-color: #f3f4f6; }
+    .entry-card { border: 1px solid #e5e7eb; margin-bottom: 1rem; padding: 1rem; border-radius: 0.5rem; background: #fff; }
+  </style>
+</head>
+<body class="flex flex-col items-center min-h-screen p-4">
+  <div class="w-full max-w-xl mx-auto">
+    <h1 class="text-4xl font-bold text-gray-800 mb-6 text-center">방명록</h1>
+    <form id="guestbook-form" class="mb-8 bg-white p-6 rounded-lg shadow">
+      <input type="text" id="nickname" placeholder="닉네임" required class="w-full mb-2 p-2 border rounded" />
+      <textarea id="content" placeholder="내용" required class="w-full mb-2 p-2 border rounded"></textarea>
+      <input type="password" id="password" placeholder="비밀번호(수정/삭제용)" required class="w-full mb-2 p-2 border rounded" />
+      <button type="submit" class="w-full bg-blue-500 text-white py-2 rounded font-bold">등록하기</button>
+    </form>
+    <div id="entries"></div>
+  </div>
+  <script>
+    const API_URL = "http://localhost:3000/guestbook/entries";
+
+    // 방명록 목록 불러오기
+    async function loadEntries() {
+      const res = await fetch(API_URL);
+      const data = await res.json();
+      const entriesDiv = document.getElementById('entries');
+      entriesDiv.innerHTML = '';
+      data.data.forEach(entry => {
+        const card = document.createElement('div');
+        card.className = 'entry-card';
+        card.innerHTML = `
+          <div class="flex justify-between items-center">
+            <span class="font-bold text-lg">${entry.nickname}</span>
+            <span class="text-xs text-gray-400">${new Date(entry.createdAt).toLocaleString()}</span>
+          </div>
+          <div class="mt-2 mb-2 text-gray-700">${entry.content}</div>
+          <button onclick="editEntry('${entry._id}')" class="mr-2 text-blue-500">수정</button>
+          <button onclick="deleteEntry('${entry._id}')" class="text-red-500">삭제</button>
+        `;
+        entriesDiv.appendChild(card);
+      });
+    }
+
+    // 방명록 등록
+    document.getElementById('guestbook-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const nickname = document.getElementById('nickname').value;
+      const content = document.getElementById('content').value;
+      const password = document.getElementById('password').value;
+      await fetch(API_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ nickname, content, password })
+      });
+      e.target.reset();
+      loadEntries();
+    });
+
+    // 방명록 삭제
+    async function deleteEntry(id) {
+      const password = prompt('비밀번호를 입력하세요');
+      if (!password) return;
+      await fetch(`${API_URL}/${id}`, {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ password })
+      });
+      loadEntries();
+    }
+
+    // 방명록 수정
+    async function editEntry(id) {
+      const nickname = prompt('새 닉네임을 입력하세요');
+      const content = prompt('새 내용을 입력하세요');
+      const password = prompt('비밀번호를 입력하세요');
+      if (!nickname || !content || !password) return;
+      await fetch(`${API_URL}/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ nickname, content, password })
+      });
+      loadEntries();
+    }
+
+    loadEntries();
+  </script>
+</body>
+</html>
