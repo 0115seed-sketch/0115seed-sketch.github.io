@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>역사 인물 테스트</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Noto Sans KR', 'Inter', sans-serif;
+        }
+        /* 라디오 버튼 커스텀 스타일 */
+        .custom-radio:checked + label {
+            background-color: #4f46e5;
+            color: white;
+            border-color: #4f46e5;
+        }
+        .custom-radio:checked + label svg {
+            transform: scale(1.1);
+            opacity: 1;
+        }
+    </style>
+</head>
+<body class="bg-gray-100 text-gray-800 flex items-center justify-center min-h-screen p-4">
+
+    <main class="bg-white rounded-2xl shadow-2xl w-full max-w-3xl overflow-hidden">
+        <!-- 시작 화면 -->
+        <div id="start-screen" class="p-8 md:p-12 text-center">
+            <h1 class="text-4xl md:text-5xl font-bold text-gray-900 mb-4">👑 내가 과거 인물이라면?</h1>
+            <p class="text-lg text-gray-600 mb-8">10가지 질문으로 나와 닮은 역사 속 인물을 찾아보세요!</p>
+            <img src="https://placehold.co/600x300/e2e8f0/4a5568?text=%EC%97%AD%EC%82%AC+%EC%86%8D+%EC%9D%B8%EB%AC%BC%EB%93%A4&font=notosanskr" alt="역사 속 인물들" class="rounded-lg mx-auto mb-8 w-full max-w-md">
+            <button id="start-btn" class="w-full md:w-auto bg-indigo-600 text-white font-bold py-3 px-8 rounded-lg hover:bg-indigo-700 transition-transform transform hover:scale-105 focus:outline-none focus:ring-4 focus:ring-indigo-300">
+                테스트 시작하기
+            </button>
+        </div>
+
+        <!-- 퀴즈 화면 -->
+        <div id="quiz-screen" class="hidden p-8 md:p-12">
+            <div class="mb-6">
+                <div class="bg-gray-200 rounded-full h-2.5">
+                    <div id="progress-bar" class="bg-indigo-600 h-2.5 rounded-full" style="width: 10%"></div>
+                </div>
+                <p id="progress-text" class="text-center text-sm text-gray-500 mt-2">1 / 10</p>
+            </div>
+            <div id="quiz-content">
+                <!-- 질문과 답변이 여기에 동적으로 삽입됩니다. -->
+            </div>
+            <button id="next-btn" class="w-full mt-8 bg-indigo-600 text-white font-bold py-3 px-6 rounded-lg hover:bg-indigo-700 transition-transform transform hover:scale-105 focus:outline-none focus:ring-4 focus:ring-indigo-300 disabled:bg-gray-400 disabled:cursor-not-allowed disabled:transform-none" disabled>
+                다음
+            </button>
+        </div>
+
+        <!-- 결과 화면 -->
+        <div id="result-screen" class="hidden p-8 md:p-12 text-center">
+            <p class="text-indigo-600 font-semibold mb-2">당신과 가장 닮은 인물은...</p>
+            <h2 id="result-name" class="text-4xl md:text-5xl font-bold text-gray-900 mb-6"></h2>
+            <img id="result-img" src="" alt="" class="w-48 h-48 md:w-60 md:h-60 rounded-full mx-auto mb-6 object-cover border-8 border-indigo-200 shadow-lg">
+            <p id="result-description" class="text-base md:text-lg text-gray-700 max-w-2xl mx-auto mb-8"></p>
+            <button id="retry-btn" class="w-full md:w-auto bg-gray-700 text-white font-bold py-3 px-8 rounded-lg hover:bg-gray-800 transition-transform transform hover:scale-105 focus:outline-none focus:ring-4 focus:ring-gray-300">
+                다시하기
+            </button>
+        </div>
+    </main>
+
+    <script>
+        // --- 데이터 영역 ---
+        const characters = {
+            "charles": {
+                name: "찰스 1세",
+                description: "강력한 신념과 권위를 중시하는 당신! 자신의 원칙을 굽히지 않는 강한 의지를 가졌지만, 때로는 다른 사람의 의견에 귀 기울이는 유연함도 필요해요. 왕의 권력은 신에게서 온 것이라 믿으며 의회와 대립하다 결국 청교도 혁명으로 비극적인 최후를 맞이했어요.",
+                img: "https://upload.wikimedia.org/wikipedia/commons/thumb/4/46/Charles_I_%281600-49%29_King_of_England.jpg/800px-Charles_I_%281600-49%29_King_of_England.jpg"
+            },
+            "william_mary": {
+                name: "메리와 윌리엄",
+                description: "협력과 안정을 중요하게 생각하는 당신! 혼자 결정하기보다는 함께 힘을 합쳐 문제를 해결하고, 평화로운 방법을 선호하는군요. 명예혁명을 통해 공동 왕이 되었고, 의회의 권리를 존중하며 안정적인 나라의 기틀을 마련했어요.",
+                img: "https://upload.wikimedia.org/wikipedia/commons/thumb/7/76/William_and_Mary.jpg/800px-William_and_Mary.jpg"
+            },
+            "cromwell": {
+                name: "올리버 크롬웰",
+                description: "목표를 향한 강력한 의지와 결단력을 가진 당신! 굳은 신념을 바탕으로 낡은 것을 부수고 새로운 질서를 만들고자 하는 혁명가의 기질이 있어요. 청교도 혁명을 이끌어 공화정을 수립했지만, 이후 호국경이 되어 독재적인 권력을 휘둘렀어요.",
+                img: "https://upload.wikimedia.org/wikipedia/commons/thumb/c/c2/Oliver_Cromwell_by_Samuel_Cooper.jpg/800px-Oliver_Cromwell_by_Samuel_Cooper.jpg"
+            },
+            "washington": {
+                name: "조지 워싱턴",
+                description: "책임감과 명예를 중시하며 공동체를 위해 헌신하는 당신! 신중하고 원칙을 지키는 리더십으로 주변의 신뢰를 얻는 타입이군요. 미국 독립 전쟁을 승리로 이끌고 초대 대통령이 되었으며, 권력에 욕심내지 않고 민주주의의 초석을 다졌어요.",
+                img: "https://upload.wikimedia.org/wikipedia/commons/thumb/b/b6/Gilbert_Stuart_Williamstown_Portrait_of_George_Washington.jpg/800px-Gilbert_Stuart_Williamstown_Portrait_of_George_Washington.jpg"
+            },
+            "napoleon": {
+                name: "나폴레옹",
+                description: "뛰어난 능력과 카리스마로 위대한 업적을 꿈꾸는 당신! 자신의 능력을 믿고, 과감한 결단으로 위기를 기회로 만드는 야심가군요. 프랑스 혁명의 혼란을 수습하고 황제가 되어 유럽을 정복했지만, 그 야망은 결국 몰락을 불러왔어요.",
+                img: "https://upload.wikimedia.org/wikipedia/commons/thumb/5/50/Jacques-Louis_David_-_The_Emperor_Napoleon_in_His_Study_at_the_Tuileries_-_Google_Art_Project.jpg/800px-Jacques-Louis_David_-_The_Emperor_Napoleon_in_His_Study_at_the_Tuileries_-_Google_Art_Project.jpg"
+            },
+            "louis": {
+                name: "루이 16세",
+                description: "안정과 평화를 중요하게 생각하지만, 때로 결정을 내리는 데 어려움을 겪는 당신! 급격한 변화보다는 현상을 유지하는 것을 선호하는군요. 프랑스 혁명이라는 거대한 변화 속에서 우유부단한 태도로 위기에 대처하지 못하고 결국 단두대에서 생을 마감했어요.",
+                img: "https://upload.wikimedia.org/wikipedia/commons/thumb/1/1a/Louis_xvi.jpg/800px-Louis_xvi.jpg"
+            }
+        };
+
+        const questions = [
+            {
+                question: "모둠 활동에서 리더를 맡게 되었다. 나의 리더십 스타일은?",
+                options: [
+                    { text: "강력한 카리스마로 내가 모두를 이끈다.", points: { napoleon: 2, cromwell: 1 } },
+                    { text: "모두의 의견을 듣고 투표로 결정한다.", points: { william_mary: 2, washington: 1 } },
+                    { text: "나의 의견이 가장 중요! 내 뜻대로 진행한다.", points: { charles: 2 } },
+                    { text: "어떻게 해야 할지 고민하다 시간이 흐른다.", points: { louis: 2 } }
+                ]
+            },
+            {
+                question: "친구와 다툼이 생겼을 때, 어떻게 해결하는 편인가?",
+                options: [
+                    { text: "내 주장이 맞다고 끝까지 설득한다.", points: { charles: 2, cromwell: 1 } },
+                    { text: "서로의 입장을 듣고 평화롭게 합의점을 찾는다.", points: { william_mary: 2 } },
+                    { text: "원칙에 따라 누가 옳고 그른지 명확히 따진다.", points: { washington: 2 } },
+                    { text: "갈등 상황 자체가 불편해서 피하고 본다.", points: { louis: 2 } }
+                ]
+            },
+            {
+                question: "새로운 규칙이 마음에 들지 않을 때, 나는?",
+                options: [
+                    { text: "규칙은 규칙! 일단 따른다.", points: { washington: 1, louis: 1 } },
+                    { text: "이 규칙은 잘못됐다! 모두에게 알리고 뜯어고친다.", points: { cromwell: 2, napoleon: 1 } },
+                    { text: "원래 있던 규칙이 더 좋았다며 불평한다.", points: { charles: 2, louis: 1 } },
+                    { text: "더 좋은 규칙을 만들기 위해 사람들을 설득한다.", points: { william_mary: 2, washington: 1 } }
+                ]
+            },
+            {
+                question: "나에게 가장 중요한 가치는?",
+                options: [
+                    { text: "나의 명예와 위대한 업적", points: { napoleon: 2 } },
+                    { text: "우리 공동체의 자유와 정의", points: { washington: 2 } },
+                    { text: "나의 신념과 원칙을 지키는 것", points: { cromwell: 2, charles: 1 } },
+                    { text: "모두와 함께 만드는 평화와 안정", points: { william_mary: 2, louis: 1 } }
+                ]
+            },
+            {
+                question: "어려운 문제에 부딪혔을 때 가장 먼저 드는 생각은?",
+                options: [
+                    { text: "이건 기회야! 과감하게 돌파하자.", points: { napoleon: 2 } },
+                    { text: "혼자서는 힘들어. 주변에 도움을 청하자.", points: { william_mary: 2 } },
+                    { text: "원칙대로, 신중하게 해결해야 해.", points: { washington: 2, charles: 1 } },
+                    { text: "큰일 났다... 일단 지켜보자.", points: { louis: 2 } }
+                ]
+            },
+            {
+                question: "'혼자보다는 함께'라는 마음에 얼마나 동의하나요? 👑🤝",
+                options: [
+                    { text: "매우 동의한다. 협력할 때 더 좋은 결과가 나온다.", points: { william_mary: 2 } },
+                    { text: "동의하지만, 때로는 뛰어난 리더 한 명이 더 중요하다.", points: { napoleon: 2, cromwell: 1 } },
+                    { text: "별로. 중요한 결정은 결국 리더 혼자 하는 것이다.", points: { charles: 2 } },
+                    { text: "동의한다. 하지만 최종 책임은 리더가 져야 한다.", points: { washington: 2 } }
+                ]
+            },
+            {
+                question: "나의 가장 큰 목표는?",
+                options: [
+                    { text: "역사에 내 이름을 남기는 것", points: { napoleon: 2, cromwell: 1 } },
+                    { text: "모두가 행복한 이상적인 공동체를 만드는 것", points: { washington: 2, william_mary: 1 } },
+                    { text: "나의 권위와 전통을 굳건히 지키는 것", points: { charles: 2 } },
+                    { text: "지금의 평화를 그대로 유지하는 것", points: { louis: 2, william_mary: 1 } }
+                ]
+            },
+            {
+                question: "나에게 '권력'이란?",
+                options: [
+                    { text: "더 큰 목표를 이루기 위한 수단", points: { napoleon: 2, cromwell: 1 } },
+                    { text: "공동체를 위해 잠시 맡는 무거운 책임", points: { washington: 2 } },
+                    { text: "리더에게 주어진 당연한 권리", points: { charles: 2 } },
+                    { text: "함부로 사용하면 안 되는 조심스러운 것", points: { william_mary: 2, louis: 1 } }
+                ]
+            },
+            {
+                question: "새로운 유행이 나타났을 때 나의 반응은?",
+                options: [
+                    { text: "재미있겠다! 바로 시도해 본다.", points: { napoleon: 1 } },
+                    { text: "신중하게 지켜보다가 괜찮으면 따라간다.", points: { washington: 1, william_mary: 1 } },
+                    { text: "역시 예전 것이 최고! 새로운 건 별로다.", points: { charles: 2, louis: 1 } },
+                    { text: "나의 신념에 어긋난다면 절대 받아들이지 않는다.", points: { cromwell: 2 } }
+                ]
+            },
+            {
+                question: "내가 가장 듣고 싶은 칭찬은?",
+                options: [
+                    { text: "'역시 너는 천재야!' (능력)", points: { napoleon: 2 } },
+                    { text: "'너와 함께하면 마음이 편안해.' (협동심)", points: { william_mary: 2 } },
+                    { text: "'너는 정말 믿음직스러워.' (책임감)", points: { washington: 2 } },
+                    { text: "'너의 신념은 정말 확고하구나.' (뚝심)", points: { cromwell: 2, charles: 1 } }
+                ]
+            }
+        ];
+
+        // --- 상태 변수 ---
+        let currentQuestionIndex = 0;
+        let scores = {};
+
+        // --- DOM 요소 ---
+        const startScreen = document.getElementById('start-screen');
+        const quizScreen = document.getElementById('quiz-screen');
+        const resultScreen = document.getElementById('result-screen');
+        
+        const startBtn = document.getElementById('start-btn');
+        const nextBtn = document.getElementById('next-btn');
+        const retryBtn = document.getElementById('retry-btn');
+        
+        const progressBar = document.getElementById('progress-bar');
+        const progressText = document.getElementById('progress-text');
+        const quizContent = document.getElementById('quiz-content');
+
+        // --- 함수 ---
+        function initializeScores() {
+            scores = {};
+            for (const key in characters) {
+                scores[key] = 0;
+            }
+        }
+
+        function showQuestion() {
+            const q = questions[currentQuestionIndex];
+            quizContent.innerHTML = `
+                <h2 class="text-2xl md:text-3xl font-bold mb-8 text-center">${q.question}</h2>
+                <div class="space-y-4">
+                    ${q.options.map((option, index) => `
+                        <div>
+                            <input type="radio" id="option${index}" name="answer" value="${index}" class="hidden custom-radio">
+                            <label for="option${index}" class="flex items-center p-4 border-2 rounded-lg cursor-pointer transition-all duration-300 hover:border-indigo-500">
+                                <span class="flex-grow text-lg">${option.text}</span>
+                                <svg class="w-6 h-6 ml-4 text-white opacity-0 transition-all duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                            </label>
+                        </div>
+                    `).join('')}
+                </div>
+            `;
+            
+            // 라디오 버튼에 이벤트 리스너 추가
+            document.querySelectorAll('input[name="answer"]').forEach(radio => {
+                radio.addEventListener('change', () => {
+                    nextBtn.disabled = false;
+                });
+            });
+
+            // 진행률 업데이트
+            const progress = ((currentQuestionIndex + 1) / questions.length) * 100;
+            progressBar.style.width = `${progress}%`;
+            progressText.textContent = `${currentQuestionIndex + 1} / ${questions.length}`;
+            
+            // 버튼 텍스트 변경
+            if (currentQuestionIndex === questions.length - 1) {
+                nextBtn.textContent = '결과 보기';
+            } else {
+                nextBtn.textContent = '다음';
+            }
+        }
+
+        function calculateResult() {
+            let maxScore = -1;
+            let resultKey = '';
+            for (const key in scores) {
+                if (scores[key] > maxScore) {
+                    maxScore = scores[key];
+                    resultKey = key;
+                }
+            }
+            return resultKey;
+        }
+
+        function showResult() {
+            const resultKey = calculateResult();
+            const result = characters[resultKey];
+
+            document.getElementById('result-name').textContent = result.name;
+            document.getElementById('result-img').src = result.img;
+            document.getElementById('result-img').alt = result.name;
+            document.getElementById('result-description').textContent = result.description;
+
+            quizScreen.classList.add('hidden');
+            resultScreen.classList.remove('hidden');
+        }
+
+        // --- 이벤트 리스너 ---
+        startBtn.addEventListener('click', () => {
+            currentQuestionIndex = 0;
+            initializeScores();
+            startScreen.classList.add('hidden');
+            quizScreen.classList.remove('hidden');
+            showQuestion();
+        });
+
+        nextBtn.addEventListener('click', () => {
+            const selectedOption = document.querySelector('input[name="answer"]:checked');
+            if (!selectedOption) return;
+
+            const answerIndex = parseInt(selectedOption.value);
+            const points = questions[currentQuestionIndex].options[answerIndex].points;
+
+            for (const key in points) {
+                scores[key] += points[key];
+            }
+
+            currentQuestionIndex++;
+
+            if (currentQuestionIndex < questions.length) {
+                showQuestion();
+                nextBtn.disabled = true;
+            } else {
+                showResult();
+            }
+        });
+
+        retryBtn.addEventListener('click', () => {
+            resultScreen.classList.add('hidden');
+            startScreen.classList.remove('hidden');
+            nextBtn.textContent = '다음';
+            nextBtn.disabled = true;
+        });
+
+        // 초기화
+        initializeScores();
+    </script>
+</body>
+</html>
