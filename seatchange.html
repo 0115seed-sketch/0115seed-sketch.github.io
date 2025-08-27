@@ -20,6 +20,10 @@
             transition: all 0.2s ease-in-out;
             cursor: pointer;
         }
+        .desk:not(.locked):hover {
+            transform: translateY(-4px);
+            box-shadow: 0 6px 12px rgba(0,0,0,0.1);
+        }
         .desk.selected {
             transform: scale(1.05);
             box-shadow: 0 0 0 3px #60a5fa; /* ring-blue-400 */
@@ -175,6 +179,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const deskElements = Array.from(layoutEditor.children);
         layout = deskElements.map((desk, i) => ({ isDesk: desk.dataset.isDesk === 'true', id: i }));
         localStorage.setItem('layout', JSON.stringify(layout));
+        // [수정] alert 메시지 추가
         alert('설정이 저장되었습니다.');
         initializeMainPage();
     }
@@ -314,7 +319,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // 카운트다운 애니메이션을 별도 함수로 분리
     function startCountdownAnimation(onComplete) {
         let count = 3;
         countdownOverlay.classList.remove('hidden');
