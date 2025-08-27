@@ -101,6 +101,8 @@
                     </div>
                 </div>
                 <div class="mt-8 flex justify-end items-center gap-3">
+                    <!-- [수정] 저장 피드백 메시지를 표시할 span 추가 -->
+                    <span id="save-feedback" class="text-green-600 font-semibold transition-opacity duration-300 opacity-0">설정이 저장되었습니다!</span>
                     <button id="teacher-preset-btn" class="bg-teal-500 hover:bg-teal-600 text-white font-bold py-2 px-5 rounded-lg transition-transform transform hover:scale-105">👨‍🏫 교사 설정 자리</button>
                     <button id="save-settings-btn" class="bg-indigo-500 hover:bg-indigo-600 text-white font-bold py-2 px-5 rounded-lg transition-transform transform hover:scale-105">💾 설정 저장</button>
                 </div>
@@ -149,6 +151,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const closePresetModalBtn = document.getElementById('close-preset-modal-btn');
     const savePresetBtn = document.getElementById('save-preset-btn');
     const teacherPresetEditorContainer = document.getElementById('teacher-preset-editor-container');
+    // [수정] 저장 피드백 DOM 요소 추가
+    const saveFeedback = document.getElementById('save-feedback');
 
     // App State
     let students = [];
@@ -179,8 +183,13 @@ document.addEventListener('DOMContentLoaded', () => {
         const deskElements = Array.from(layoutEditor.children);
         layout = deskElements.map((desk, i) => ({ isDesk: desk.dataset.isDesk === 'true', id: i }));
         localStorage.setItem('layout', JSON.stringify(layout));
-        // [수정] alert 메시지 추가
-        alert('설정이 저장되었습니다.');
+        
+        // [수정] alert 대신 페이지 내 메시지 표시
+        saveFeedback.classList.remove('opacity-0');
+        setTimeout(() => {
+            saveFeedback.classList.add('opacity-0');
+        }, 2000); // 2초 후에 메시지 사라짐
+        
         initializeMainPage();
     }
 
