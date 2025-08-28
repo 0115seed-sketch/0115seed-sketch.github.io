@@ -10,7 +10,6 @@
         body {
             font-family: 'Noto Sans KR', sans-serif;
         }
-        /* 간단한 애니메이션 효과 */
         .fade-in {
             animation: fadeIn 0.5s ease-in-out;
         }
@@ -25,6 +24,23 @@
             0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7); }
             70% { box-shadow: 0 0 0 20px rgba(239, 68, 68, 0); }
             100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
+        }
+        /* 메시지 알림 스타일 */
+        .toast-message {
+            padding: 12px 24px;
+            background-color: #ef4444; /* Tailwind red-500 */
+            color: white;
+            border-radius: 8px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+            margin-bottom: 10px;
+            opacity: 0;
+            transform: translateY(20px);
+            transition: opacity 0.3s ease, transform 0.3s ease;
+            font-weight: 500;
+        }
+        .toast-message.show {
+            opacity: 1;
+            transform: translateY(0);
         }
     </style>
 </head>
@@ -87,40 +103,31 @@
         </div>
     </div>
 
+    <!-- 메시지 알림 컨테이너 -->
+    <div id="message-container" class="fixed bottom-5 right-5 z-50"></div>
+
     <!-- Firebase SDK -->
     <script type="module">
-        // Firebase v9+ 모듈 방식 import
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-        import { getFirestore, doc, onSnapshot, setDoc, updateDoc, arrayUnion, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+        import { getFirestore, doc, onSnapshot, setDoc, updateDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
-        // ===============================================================
-        // === 중요: 여기에 자신의 Firebase 프로젝트 설정을 붙여넣으세요. ===
-        // ===============================================================
         const firebaseConfig = {
-        apiKey: "AIzaSyCcszBKZTxlQL54TwcjNIapAfp4tLpuTS0",
-        authDomain: "raise-your-hand-d34fb.firebaseapp.com",
-        projectId: "raise-your-hand-d34fb",
-        storageBucket: "raise-your-hand-d34fb.firebasestorage.app",
-        messagingSenderId: "725866951830",
-        appId: "1:725866951830:web:106df624f44033f07a3eb7",
-        measurementId: "G-WNVGCJ6SY3"
+            apiKey: "AIzaSyCcszBKZTxlQL54TwcjNIapAfp4tLpuTS0",
+            authDomain: "raise-your-hand-d34fb.firebaseapp.com",
+            projectId: "raise-your-hand-d34fb",
+            storageBucket: "raise-your-hand-d34fb.appspot.com",
+            messagingSenderId: "725866951830",
+            appId: "1:725866951830:web:106df624f44033f07a3eb7"
         };
-        // ===============================================================
 
-        // Firebase 앱 초기화
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
-
-        // Firestore 문서 참조
         const sessionRef = doc(db, "presentationBell", "session");
 
         let userNickname = null;
         let hasBuzzed = false;
-        
-        // 교사 비밀번호 (간단한 인증용)
-        const TEACHER_PASSWORD = "1234"; 
+        const TEACHER_PASSWORD = "5873"; 
 
-        // UI 요소들
         const views = {
             roleSelection: document.getElementById('role-selection'),
             teacherLogin: document.getElementById('teacher-login'),
@@ -129,16 +136,26 @@
             studentPage: document.getElementById('student-page'),
         };
 
-        // UI 상태 관리 함수
         function showView(viewName) {
             Object.values(views).forEach(view => view.classList.add('hidden'));
-            if (views[viewName]) {
-                views[viewName].classList.remove('hidden');
-            }
+            if (views[viewName]) views[viewName].classList.remove('hidden');
+        }
+
+        function showMessage(text) {
+            const container = document.getElementById('message-container');
+            const messageDiv = document.createElement('div');
+            messageDiv.textContent = text;
+            messageDiv.className = 'toast-message';
+            container.appendChild(messageDiv);
+
+            setTimeout(() => { messageDiv.classList.add('show'); }, 10);
+            setTimeout(() => {
+                messageDiv.classList.remove('show');
+                setTimeout(() => { container.removeChild(messageDiv); }, 300);
+            }, 3000);
         }
         
         window.showRoleSelection = () => {
-            // 모든 상태 초기화
             userNickname = null;
             hasBuzzed = false;
             document.getElementById('password').value = '';
@@ -149,18 +166,16 @@
         window.showTeacherLogin = () => showView('teacherLogin');
         window.showStudentLogin = () => showView('studentLogin');
 
-        // 교사 로그인
         window.login = () => {
             const password = document.getElementById('password').value;
             if (password === TEACHER_PASSWORD) {
                 showView('teacherPage');
                 listenForSessionChangesTeacher();
             } else {
-                alert('비밀번호가 틀렸습니다.');
+                showMessage('비밀번호가 틀렸습니다.');
             }
         };
 
-        // 학생으로 참여
         window.joinAsStudent = () => {
             const nickname = document.getElementById('nickname').value.trim();
             if (nickname) {
@@ -169,11 +184,10 @@
                 showView('studentPage');
                 listenForSessionChangesStudent();
             } else {
-                alert('닉네임을 입력해주세요.');
+                showMessage('닉네임을 입력해주세요.');
             }
         };
 
-        // 교사: 세션 변경 감지
         function listenForSessionChangesTeacher() {
             onSnapshot(sessionRef, (doc) => {
                 const teacherStatus = document.getElementById('teacher-status');
@@ -182,14 +196,12 @@
                 const stopBtn = document.getElementById('stop-btn');
 
                 if (!doc.exists()) {
-                    // 문서가 없으면 초기화
                     resetSession();
                     return;
                 }
                 
                 const data = doc.data();
                 
-                // 상태 텍스트 업데이트
                 if (data.isActive) {
                     teacherStatus.innerText = "발표 진행 중...";
                     teacherStatus.className = "text-center text-green-600 mb-4 font-semibold";
@@ -202,23 +214,35 @@
                     stopBtn.disabled = true;
                 }
 
-                // 벨 누른 학생 목록 업데이트
                 buzzerList.innerHTML = '';
-                if (data.buzzers && data.buzzers.length > 0) {
-                    // Firestore timestamp 기준으로 정렬
-                    const sortedBuzzers = [...data.buzzers].sort((a, b) => a.timestamp.toMillis() - b.timestamp.toMillis());
-                    sortedBuzzers.forEach(buzzer => {
-                        const li = document.createElement('li');
-                        li.textContent = buzzer.nickname;
-                        buzzerList.appendChild(li);
+                // ===================== 문제 해결 부분 1 =====================
+                // buzzers가 객체(map) 형태이므로, 배열로 변환하여 정렬합니다.
+                if (data.buzzers && Object.keys(data.buzzers).length > 0) {
+                    const buzzersArray = Object.entries(data.buzzers).map(([nickname, timestamp]) => ({
+                        nickname,
+                        timestamp
+                    }));
+                    
+                    const sortedBuzzers = buzzersArray.sort((a, b) => {
+                        const timeA = a.timestamp ? a.timestamp.toMillis() : 0;
+                        const timeB = b.timestamp ? b.timestamp.toMillis() : 0;
+                        return timeA - timeB;
                     });
+                    
+                    sortedBuzzers.forEach(buzzer => {
+                        if (buzzer && buzzer.nickname) {
+                            const li = document.createElement('li');
+                            li.textContent = buzzer.nickname;
+                            buzzerList.appendChild(li);
+                        }
+                    });
+                // ========================================================
                 } else {
                     buzzerList.innerHTML = '<li class="text-gray-400">아직 벨을 누른 학생이 없습니다.</li>';
                 }
             });
         }
 
-        // 학생: 세션 변경 감지
         function listenForSessionChangesStudent() {
             onSnapshot(sessionRef, (doc) => {
                 const studentStatus = document.getElementById('student-status');
@@ -227,9 +251,10 @@
                 if (!doc.exists()) return;
 
                 const data = doc.data();
-                
-                // 내가 벨을 눌렀는지 확인
-                hasBuzzed = data.buzzers?.some(b => b.nickname === userNickname) || false;
+                // ===================== 문제 해결 부분 2 =====================
+                // buzzers 객체에 내 닉네임이 있는지 확인합니다.
+                hasBuzzed = data.buzzers && data.buzzers[userNickname] !== undefined;
+                // ========================================================
 
                 if (data.isActive) {
                     if (hasBuzzed) {
@@ -252,43 +277,40 @@
             });
         }
 
-        // 교사: 발표 시작
         window.startSession = async () => {
             await updateDoc(sessionRef, { isActive: true });
         };
         
-        // 교사: 발표 중지
         window.stopSession = async () => {
             await updateDoc(sessionRef, { isActive: false });
         };
 
-        // 교사: 세션 초기화
         window.resetSession = async () => {
             await setDoc(sessionRef, {
                 isActive: false,
-                buzzers: []
+                // ===================== 문제 해결 부분 3 =====================
+                // buzzers를 배열이 아닌 빈 객체로 초기화합니다.
+                buzzers: {}
+                // ========================================================
             });
         };
 
-        // 학생: 벨 누르기
         window.buzzIn = async () => {
             if (!userNickname || hasBuzzed) return;
             
-            hasBuzzed = true; // 중복 클릭 방지
-            const buzzerBtn = document.getElementById('buzzer-btn');
-            buzzerBtn.disabled = true;
+            hasBuzzed = true;
+            document.getElementById('buzzer-btn').disabled = true;
 
-            await updateDoc(sessionRef, {
-                buzzers: arrayUnion({
-                    nickname: userNickname,
-                    timestamp: serverTimestamp()
-                })
-            });
+            // ===================== 문제 해결 부분 4 =====================
+            // arrayUnion 대신, 객체의 필드를 업데이트하는 방식으로 변경합니다.
+            // 예: { buzzers: { '홍길동': <timestamp> } }
+            const updatePayload = {};
+            updatePayload[`buzzers.${userNickname}`] = serverTimestamp();
+            await updateDoc(sessionRef, updatePayload);
+            // ========================================================
         };
 
-        // 페이지 로드 시 역할 선택 화면 표시
         showRoleSelection();
-
     </script>
 </body>
 </html>
