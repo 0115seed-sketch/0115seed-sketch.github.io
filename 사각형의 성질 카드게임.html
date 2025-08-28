@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>사각형의 성질 카드게임</title>
+    <!-- Tailwind CSS 로드 -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet">
+    <style>
+        /* Noto Sans KR 폰트 적용 */
+        body {
+            font-family: 'Noto Sans KR', sans-serif;
+        }
+        /* 화면 전환 효과 */
+        .screen {
+            transition: opacity 0.5s ease-in-out;
+        }
+        .hidden {
+            display: none;
+        }
+        /* 키보드 키 스타일 */
+        kbd {
+            background-color: #eee;
+            border-radius: 3px;
+            border: 1px solid #b4b4b4;
+            box-shadow: 0 1px 1px rgba(0, 0, 0, .2), 0 2px 0 0 rgba(255, 255, 255, .7) inset;
+            color: #333;
+            display: inline-block;
+            font-size: 0.85em;
+            font-weight: 700;
+            line-height: 1;
+            padding: 4px 8px;
+            white-space: nowrap;
+        }
+    </style>
+</head>
+<body class="bg-gray-100 flex items-center justify-center min-h-screen">
+
+    <div class="w-full max-w-2xl mx-auto p-4">
+
+        <!-- 설정 화면 -->
+        <div id="settings-screen" class="screen bg-white p-8 rounded-2xl shadow-lg text-center">
+            <h1 class="text-3xl font-bold mb-2 text-gray-800">사각형의 성질 카드게임</h1>
+            <p class="text-lg text-indigo-600 font-semibold mb-6">
+                사각형에 해당하는 성질 카드가 하나라도 제시되면, 종을 울리세요!
+            </p>
+            <div class="flex justify-center items-start gap-8 mb-6">
+                <div class="flex-1">
+                    <label for="card-count" class="block text-lg font-medium text-gray-700 mb-2">카드 수</label>
+                    <input type="number" id="card-count" value="3" min="2" max="5" class="w-full p-3 text-center text-lg border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition">
+                </div>
+                <div class="flex-1">
+                    <label for="countdown-time" class="block text-lg font-medium text-gray-700 mb-2">카운트다운(초)</label>
+                    <input type="number" id="countdown-time" value="10" min="3" max="60" class="w-full p-3 text-center text-lg border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition">
+                </div>
+            </div>
+            <div class="flex justify-center items-center space-x-4 mb-6 text-gray-600 border-t pt-4">
+                <span><kbd>Space</kbd> 시작/종</span>
+                <span><kbd>→</kbd> 다음</span>
+                <span><kbd>R</kbd> 다시하기</span>
+            </div>
+            <button id="start-btn" class="w-full bg-indigo-600 text-white font-bold py-4 px-6 rounded-xl text-xl hover:bg-indigo-700 focus:outline-none focus:ring-4 focus:ring-indigo-300 transition-transform transform hover:scale-105">
+                시작하기
+            </button>
+        </div>
+
+        <!-- 게임 화면 (초기에는 숨김) -->
+        <div id="game-screen" class="screen hidden">
+             <div class="flex justify-center items-center space-x-4 mb-2 text-gray-600">
+                <span><kbd>Space</kbd> 종</span>
+                <span><kbd>→</kbd> 다음</span>
+                <span><kbd>R</kbd> 다시하기</span>
+            </div>
+            <p class="text-center text-md text-indigo-600 font-semibold mb-2">
+                사각형에 해당하는 성질 카드가 하나라도 제시되면, 종을 울리세요!
+            </p>
+            
+            <div id="timer-container" class="text-center mb-4 transition-colors duration-300">
+                <p class="text-2xl font-bold text-indigo-600">남은 시간: <span id="timer-display">10</span>초</p>
+            </div>
+            
+            <!-- [수정됨] 카드 중앙 정렬을 위해 grid -> flex로 변경 -->
+            <div id="card-container" class="flex flex-wrap justify-center items-center gap-4 min-h-[120px] mb-6">
+                <!-- 카드는 JavaScript로 생성됩니다. -->
+            </div>
+            
+            <div id="message-display" class="text-center text-4xl font-bold min-h-[60px] mb-6 transition-all duration-300"></div>
+
+            <div class="grid grid-cols-3 gap-4">
+                <button id="bell-btn" class="bg-yellow-400 text-gray-800 font-bold py-4 px-6 rounded-xl text-xl hover:bg-yellow-500 focus:outline-none focus:ring-4 focus:ring-yellow-300 transition-transform transform hover:scale-105 disabled:bg-gray-300 disabled:scale-100 disabled:cursor-not-allowed">
+                    🔔 종 누르기
+                </button>
+                <button id="next-btn" class="bg-green-500 text-white font-bold py-4 px-6 rounded-xl text-xl hover:bg-green-600 focus:outline-none focus:ring-4 focus:ring-green-300 transition-transform transform hover:scale-105">
+                    다음 문제
+                </button>
+                <button id="restart-btn" class="bg-gray-500 text-white font-bold py-4 px-6 rounded-xl text-xl hover:bg-gray-600 focus:outline-none focus:ring-4 focus:ring-gray-300 transition-transform transform hover:scale-105">
+                    다시하기
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- 데이터 정의 ---
+        const CARDS = [
+            { id: 's1', name: '사다리꼴', type: 'shape' }, { id: 's2', name: '평행사변형', type: 'shape' },
+            { id: 's3', name: '마름모', type: 'shape' }, { id: 's4', name: '직사각형', type: 'shape' },
+            { id: 's5', name: '정사각형', type: 'shape' }, { id: 'p1', name: '두 대각선의 길이가 같다.', type: 'property' },
+            { id: 'p2', name: '두 대각선이 서로 수직이다.', type: 'property' }, { id: 'p3', name: '두 대각선이 서로를 이등분한다.', type: 'property' },
+        ];
+        const RELATIONSHIPS = {
+            's1': [], 's2': ['p3'], 's3': ['p2', 'p3'], 's4': ['p1', 'p3'], 's5': ['p1', 'p2', 'p3'],
+        };
+
+        // --- DOM 요소 가져오기 ---
+        const settingsScreen = document.getElementById('settings-screen');
+        const gameScreen = document.getElementById('game-screen');
+        const startBtn = document.getElementById('start-btn');
+        const cardCountInput = document.getElementById('card-count');
+        const countdownTimeInput = document.getElementById('countdown-time');
+        const timerDisplay = document.getElementById('timer-display');
+        const timerContainer = document.getElementById('timer-container').querySelector('p');
+        const cardContainer = document.getElementById('card-container');
+        const messageDisplay = document.getElementById('message-display');
+        const bellBtn = document.getElementById('bell-btn');
+        const nextBtn = document.getElementById('next-btn');
+        const restartBtn = document.getElementById('restart-btn');
+
+        // --- 게임 상태 변수 ---
+        let currentCards = [];
+        let timer;
+        let timeLeft;
+        let gameSettings = { cardCount: 3, countdownTime: 10 };
+
+        // --- 이벤트 리스너 ---
+        startBtn.addEventListener('click', startGame);
+        bellBtn.addEventListener('click', handleBellRing);
+        nextBtn.addEventListener('click', startNewRound);
+        restartBtn.addEventListener('click', handleRestart);
+        document.addEventListener('keydown', handleKeyPress);
+
+        // --- 게임 로직 함수 ---
+        function startGame() {
+            gameSettings.cardCount = parseInt(cardCountInput.value);
+            gameSettings.countdownTime = parseInt(countdownTimeInput.value);
+            settingsScreen.classList.add('hidden');
+            gameScreen.classList.remove('hidden');
+            startNewRound();
+        }
+
+        function startNewRound() {
+            clearInterval(timer);
+            messageDisplay.textContent = '';
+            messageDisplay.className = 'text-center text-4xl font-bold min-h-[60px] mb-6 transition-all duration-300';
+            bellBtn.disabled = false;
+            timerContainer.classList.remove('text-red-600');
+            timerContainer.classList.add('text-indigo-600');
+            generateAndDisplayCards();
+            startCountdown();
+        }
+
+        function generateAndDisplayCards() {
+            currentCards = [];
+            for (let i = 0; i < gameSettings.cardCount; i++) {
+                const randomIndex = Math.floor(Math.random() * CARDS.length);
+                currentCards.push(CARDS[randomIndex]);
+            }
+            cardContainer.innerHTML = '';
+            currentCards.forEach(card => {
+                const cardElement = document.createElement('div');
+                // [수정됨] 카드 너비를 고정하고 col-span 클래스 제거
+                cardElement.className = 'bg-gray-200 border-2 border-gray-300 rounded-xl p-4 flex items-center justify-center text-center font-medium text-gray-800 h-28 w-32 shadow-md';
+                cardElement.textContent = card.name;
+                cardContainer.appendChild(cardElement);
+            });
+        }
+
+        function startCountdown() {
+            timeLeft = gameSettings.countdownTime;
+            timerDisplay.textContent = timeLeft;
+            timer = setInterval(() => {
+                timeLeft--;
+                timerDisplay.textContent = timeLeft;
+                if (timeLeft <= 5 && timeLeft > 0) {
+                    timerContainer.classList.remove('text-indigo-600');
+                    timerContainer.classList.add('text-red-600');
+                }
+                if (timeLeft <= 0) {
+                    clearInterval(timer);
+                    timerDisplay.textContent = '0';
+                    bellBtn.disabled = true;
+                    displayMessage('시간 초과!', 'text-red-600');
+                }
+            }, 1000);
+        }
+
+        function handleBellRing() {
+            if (bellBtn.disabled) return;
+            clearInterval(timer);
+            bellBtn.disabled = true;
+            const isCorrect = checkAnswer();
+            if (isCorrect) {
+                displayMessage('정답입니다!', 'text-blue-600');
+            } else {
+                displayMessage('오답입니다!', 'text-red-600');
+            }
+        }
+
+        function checkAnswer() {
+            const displayedShapes = currentCards.filter(card => card.type === 'shape');
+            const displayedProperties = currentCards.filter(card => card.type === 'property');
+            if (displayedProperties.length === 0 || displayedShapes.length === 0) {
+                return false;
+            }
+            for (const shape of displayedShapes) {
+                const shapeProperties = RELATIONSHIPS[shape.id];
+                for (const prop of displayedProperties) {
+                    if (shapeProperties.includes(prop.id)) {
+                        return true;
+                    }
+                }
+            }
+            return false;
+        }
+        
+        function displayMessage(text, colorClass) {
+            messageDisplay.textContent = text;
+            messageDisplay.classList.add(colorClass);
+        }
+        
+        function handleRestart() {
+            clearInterval(timer);
+            gameScreen.classList.add('hidden');
+            settingsScreen.classList.remove('hidden');
+        }
+
+        function handleKeyPress(event) {
+            if (!settingsScreen.classList.contains('hidden')) {
+                if (event.code === 'Space') {
+                    event.preventDefault();
+                    startBtn.click();
+                }
+                return;
+            }
+            
+            if (!gameScreen.classList.contains('hidden')) {
+                switch (event.code) {
+                    case 'Space':
+                        event.preventDefault();
+                        bellBtn.click();
+                        break;
+                    case 'ArrowRight':
+                        nextBtn.click();
+                        break;
+                    case 'KeyR':
+                        restartBtn.click();
+                        break;
+                }
+            }
+        }
+    </script>
+</body>
+</html>
