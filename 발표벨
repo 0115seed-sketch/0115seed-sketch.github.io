@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>교실 발표벨</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Noto Sans KR', sans-serif;
+        }
+        /* 간단한 애니메이션 효과 */
+        .fade-in {
+            animation: fadeIn 0.5s ease-in-out;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .buzzer-btn.active {
+            animation: pulse 1.5s infinite;
+        }
+        @keyframes pulse {
+            0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7); }
+            70% { box-shadow: 0 0 0 20px rgba(239, 68, 68, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
+        }
+    </style>
+</head>
+<body class="bg-gray-100 flex items-center justify-center min-h-screen">
+
+    <div id="app-container" class="w-full max-w-md mx-auto p-4">
+
+        <!-- 초기 역할 선택 화면 -->
+        <div id="role-selection" class="text-center bg-white p-8 rounded-xl shadow-lg fade-in">
+            <h1 class="text-3xl font-bold text-gray-800 mb-6">발표벨에 오신 것을 환영합니다!</h1>
+            <p class="text-gray-600 mb-8">역할을 선택해주세요.</p>
+            <div class="space-y-4">
+                <button onclick="showTeacherLogin()" class="w-full bg-blue-500 hover:bg-blue-600 text-white font-bold py-3 px-4 rounded-lg transition duration-300">선생님</button>
+                <button onclick="showStudentLogin()" class="w-full bg-green-500 hover:bg-green-600 text-white font-bold py-3 px-4 rounded-lg transition duration-300">학생</button>
+            </div>
+        </div>
+
+        <!-- 교사 로그인 화면 -->
+        <div id="teacher-login" class="hidden text-center bg-white p-8 rounded-xl shadow-lg fade-in">
+            <h2 class="text-2xl font-bold text-gray-800 mb-6">교사 인증</h2>
+            <input type="password" id="password" placeholder="비밀번호를 입력하세요" class="w-full p-3 border border-gray-300 rounded-lg mb-4 focus:outline-none focus:ring-2 focus:ring-blue-500">
+            <button onclick="login()" class="w-full bg-blue-500 hover:bg-blue-600 text-white font-bold py-3 px-4 rounded-lg transition duration-300 mb-2">로그인</button>
+            <button onclick="showRoleSelection()" class="w-full bg-gray-300 hover:bg-gray-400 text-gray-800 font-bold py-2 px-4 rounded-lg transition duration-300">뒤로가기</button>
+        </div>
+
+        <!-- 학생 로그인 화면 -->
+        <div id="student-login" class="hidden text-center bg-white p-8 rounded-xl shadow-lg fade-in">
+            <h2 class="text-2xl font-bold text-gray-800 mb-6">닉네임 입력</h2>
+            <input type="text" id="nickname" placeholder="닉네임을 입력하세요" class="w-full p-3 border border-gray-300 rounded-lg mb-4 focus:outline-none focus:ring-2 focus:ring-green-500">
+            <button onclick="joinAsStudent()" class="w-full bg-green-500 hover:bg-green-600 text-white font-bold py-3 px-4 rounded-lg transition duration-300 mb-2">참여하기</button>
+            <button onclick="showRoleSelection()" class="w-full bg-gray-300 hover:bg-gray-400 text-gray-800 font-bold py-2 px-4 rounded-lg transition duration-300">뒤로가기</button>
+        </div>
+
+        <!-- 교사 페이지 -->
+        <div id="teacher-page" class="hidden bg-white p-8 rounded-xl shadow-lg fade-in">
+            <h2 class="text-2xl font-bold text-gray-800 mb-4">교사 페이지</h2>
+            <div class="flex space-x-2 mb-4">
+                <button id="start-btn" onclick="startSession()" class="flex-1 bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-4 rounded-lg transition duration-300">발표 시작</button>
+                <button id="stop-btn" onclick="stopSession()" class="flex-1 bg-yellow-500 hover:bg-yellow-600 text-white font-bold py-2 px-4 rounded-lg transition duration-300">발표 중지</button>
+                <button onclick="resetSession()" class="flex-1 bg-red-500 hover:bg-red-600 text-white font-bold py-2 px-4 rounded-lg transition duration-300">초기화</button>
+            </div>
+            <p id="teacher-status" class="text-center text-gray-600 mb-4 font-semibold">대기 중...</p>
+            <div class="bg-gray-50 p-4 rounded-lg h-64 overflow-y-auto border">
+                <h3 class="font-bold mb-2">발표 순서</h3>
+                <ul id="buzzer-list" class="list-decimal list-inside space-y-2 text-gray-700">
+                    <!-- 학생 닉네임이 여기에 표시됩니다. -->
+                </ul>
+            </div>
+             <button onclick="showRoleSelection()" class="mt-4 w-full bg-gray-300 hover:bg-gray-400 text-gray-800 font-bold py-2 px-4 rounded-lg transition duration-300">나가기</button>
+        </div>
+
+        <!-- 학생 페이지 -->
+        <div id="student-page" class="hidden text-center bg-white p-8 rounded-xl shadow-lg fade-in">
+            <h2 id="student-welcome" class="text-2xl font-bold text-gray-800 mb-4"></h2>
+            <p id="student-status" class="text-gray-600 mb-8 font-semibold">선생님이 발표를 시작하기를 기다리는 중...</p>
+            <button id="buzzer-btn" onclick="buzzIn()" disabled class="buzzer-btn w-48 h-48 bg-gray-400 text-white font-bold text-3xl rounded-full transition duration-300 focus:outline-none disabled:cursor-not-allowed disabled:opacity-50">
+                벨
+            </button>
+             <button onclick="showRoleSelection()" class="mt-8 w-full bg-gray-300 hover:bg-gray-400 text-gray-800 font-bold py-2 px-4 rounded-lg transition duration-300">나가기</button>
+        </div>
+    </div>
+
+    <!-- Firebase SDK -->
+    <script type="module">
+        // Firebase v9+ 모듈 방식 import
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+        import { getFirestore, doc, onSnapshot, setDoc, updateDoc, arrayUnion, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+        // ===============================================================
+        // === 중요: 여기에 자신의 Firebase 프로젝트 설정을 붙여넣으세요. ===
+        // ===============================================================
+        const firebaseConfig = {
+        apiKey: "AIzaSyCcszBKZTxlQL54TwcjNIapAfp4tLpuTS0",
+        authDomain: "raise-your-hand-d34fb.firebaseapp.com",
+        projectId: "raise-your-hand-d34fb",
+        storageBucket: "raise-your-hand-d34fb.firebasestorage.app",
+        messagingSenderId: "725866951830",
+        appId: "1:725866951830:web:106df624f44033f07a3eb7",
+        measurementId: "G-WNVGCJ6SY3"
+        };
+        // ===============================================================
+
+        // Firebase 앱 초기화
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+
+        // Firestore 문서 참조
+        const sessionRef = doc(db, "presentationBell", "session");
+
+        let userNickname = null;
+        let hasBuzzed = false;
+        
+        // 교사 비밀번호 (간단한 인증용)
+        const TEACHER_PASSWORD = "1234"; 
+
+        // UI 요소들
+        const views = {
+            roleSelection: document.getElementById('role-selection'),
+            teacherLogin: document.getElementById('teacher-login'),
+            studentLogin: document.getElementById('student-login'),
+            teacherPage: document.getElementById('teacher-page'),
+            studentPage: document.getElementById('student-page'),
+        };
+
+        // UI 상태 관리 함수
+        function showView(viewName) {
+            Object.values(views).forEach(view => view.classList.add('hidden'));
+            if (views[viewName]) {
+                views[viewName].classList.remove('hidden');
+            }
+        }
+        
+        window.showRoleSelection = () => {
+            // 모든 상태 초기화
+            userNickname = null;
+            hasBuzzed = false;
+            document.getElementById('password').value = '';
+            document.getElementById('nickname').value = '';
+            showView('roleSelection');
+        };
+
+        window.showTeacherLogin = () => showView('teacherLogin');
+        window.showStudentLogin = () => showView('studentLogin');
+
+        // 교사 로그인
+        window.login = () => {
+            const password = document.getElementById('password').value;
+            if (password === TEACHER_PASSWORD) {
+                showView('teacherPage');
+                listenForSessionChangesTeacher();
+            } else {
+                alert('비밀번호가 틀렸습니다.');
+            }
+        };
+
+        // 학생으로 참여
+        window.joinAsStudent = () => {
+            const nickname = document.getElementById('nickname').value.trim();
+            if (nickname) {
+                userNickname = nickname;
+                document.getElementById('student-welcome').innerText = `${userNickname}님, 환영합니다!`;
+                showView('studentPage');
+                listenForSessionChangesStudent();
+            } else {
+                alert('닉네임을 입력해주세요.');
+            }
+        };
+
+        // 교사: 세션 변경 감지
+        function listenForSessionChangesTeacher() {
+            onSnapshot(sessionRef, (doc) => {
+                const teacherStatus = document.getElementById('teacher-status');
+                const buzzerList = document.getElementById('buzzer-list');
+                const startBtn = document.getElementById('start-btn');
+                const stopBtn = document.getElementById('stop-btn');
+
+                if (!doc.exists()) {
+                    // 문서가 없으면 초기화
+                    resetSession();
+                    return;
+                }
+                
+                const data = doc.data();
+                
+                // 상태 텍스트 업데이트
+                if (data.isActive) {
+                    teacherStatus.innerText = "발표 진행 중...";
+                    teacherStatus.className = "text-center text-green-600 mb-4 font-semibold";
+                    startBtn.disabled = true;
+                    stopBtn.disabled = false;
+                } else {
+                    teacherStatus.innerText = "대기 중...";
+                    teacherStatus.className = "text-center text-gray-600 mb-4 font-semibold";
+                    startBtn.disabled = false;
+                    stopBtn.disabled = true;
+                }
+
+                // 벨 누른 학생 목록 업데이트
+                buzzerList.innerHTML = '';
+                if (data.buzzers && data.buzzers.length > 0) {
+                    // Firestore timestamp 기준으로 정렬
+                    const sortedBuzzers = [...data.buzzers].sort((a, b) => a.timestamp.toMillis() - b.timestamp.toMillis());
+                    sortedBuzzers.forEach(buzzer => {
+                        const li = document.createElement('li');
+                        li.textContent = buzzer.nickname;
+                        buzzerList.appendChild(li);
+                    });
+                } else {
+                    buzzerList.innerHTML = '<li class="text-gray-400">아직 벨을 누른 학생이 없습니다.</li>';
+                }
+            });
+        }
+
+        // 학생: 세션 변경 감지
+        function listenForSessionChangesStudent() {
+            onSnapshot(sessionRef, (doc) => {
+                const studentStatus = document.getElementById('student-status');
+                const buzzerBtn = document.getElementById('buzzer-btn');
+
+                if (!doc.exists()) return;
+
+                const data = doc.data();
+                
+                // 내가 벨을 눌렀는지 확인
+                hasBuzzed = data.buzzers?.some(b => b.nickname === userNickname) || false;
+
+                if (data.isActive) {
+                    if (hasBuzzed) {
+                        studentStatus.innerText = "벨을 눌렀습니다! 다른 친구들을 기다려주세요.";
+                        buzzerBtn.disabled = true;
+                        buzzerBtn.classList.remove('active', 'bg-red-500', 'hover:bg-red-600');
+                        buzzerBtn.classList.add('bg-gray-400');
+                    } else {
+                        studentStatus.innerText = "발표할 기회입니다! 벨을 누르세요.";
+                        buzzerBtn.disabled = false;
+                        buzzerBtn.classList.add('active', 'bg-red-500', 'hover:bg-red-600');
+                        buzzerBtn.classList.remove('bg-gray-400');
+                    }
+                } else {
+                    studentStatus.innerText = "선생님이 발표를 시작하기를 기다리는 중...";
+                    buzzerBtn.disabled = true;
+                    buzzerBtn.classList.remove('active', 'bg-red-500', 'hover:bg-red-600');
+                    buzzerBtn.classList.add('bg-gray-400');
+                }
+            });
+        }
+
+        // 교사: 발표 시작
+        window.startSession = async () => {
+            await updateDoc(sessionRef, { isActive: true });
+        };
+        
+        // 교사: 발표 중지
+        window.stopSession = async () => {
+            await updateDoc(sessionRef, { isActive: false });
+        };
+
+        // 교사: 세션 초기화
+        window.resetSession = async () => {
+            await setDoc(sessionRef, {
+                isActive: false,
+                buzzers: []
+            });
+        };
+
+        // 학생: 벨 누르기
+        window.buzzIn = async () => {
+            if (!userNickname || hasBuzzed) return;
+            
+            hasBuzzed = true; // 중복 클릭 방지
+            const buzzerBtn = document.getElementById('buzzer-btn');
+            buzzerBtn.disabled = true;
+
+            await updateDoc(sessionRef, {
+                buzzers: arrayUnion({
+                    nickname: userNickname,
+                    timestamp: serverTimestamp()
+                })
+            });
+        };
+
+        // 페이지 로드 시 역할 선택 화면 표시
+        showRoleSelection();
+
+    </script>
+</body>
+</html>
