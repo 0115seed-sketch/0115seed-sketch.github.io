@@ -433,12 +433,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function applyTeacherPreset() {
         if (seatAssignments.some(a => a.locked)) {
-            alert('고정된 자리가 있어 교사 설정 자리를 적용할 수 없습니다. 자리 고정을 모두 해제해주세요.');
             return;
         }
         const preset = JSON.parse(localStorage.getItem('teacherPresetAssignments'));
         if (!preset || preset.length === 0) {
-            alert('저장된 교사 설정 자리가 없습니다. 설정 페이지에서 먼저 자리를 설정해주세요.');
             return;
         }
         seatAssignments = seatAssignments.map(currentAssignment => {
@@ -452,7 +450,6 @@ document.addEventListener('DOMContentLoaded', () => {
         startCountdownAnimation(() => {
             renderSeatingChart(seatingChartContainer, seatAssignments);
             saveAssignments();
-            alert('교사 설정 자리가 적용되었습니다.');
         });
     }
 
@@ -475,4 +472,5 @@ document.addEventListener('DOMContentLoaded', () => {
 </script>
 </body>
 </html>
+
 
