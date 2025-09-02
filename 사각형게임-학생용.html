@@ -194,10 +194,12 @@
             await updateDoc(sessionRef, {
                 buzzerOrder: arrayUnion({
                     teamName: myTeam,
-                    timestamp: serverTimestamp()
+                    // serverTimestamp()를 new Date()로 변경하여 클라이언트 시간을 기록
+                    timestamp: new Date()
                 })
             });
         }
     </script>
 </body>
 </html>
+
