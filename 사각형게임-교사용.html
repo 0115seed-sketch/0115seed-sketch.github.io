@@ -57,10 +57,9 @@
 
                     <!-- 게임 컨트롤 버튼 -->
                     <div class="mt-6 flex justify-center gap-4">
-                        <button id="award-btn" class="bg-blue-500 text-white font-bold py-3 px-6 rounded-lg text-lg hover:bg-blue-600 transition disabled:bg-gray-400" disabled>정답 (+10점)</button>
-                        <button id="incorrect-btn" class="bg-red-500 text-white font-bold py-3 px-6 rounded-lg text-lg hover:bg-red-600 transition disabled:bg-gray-400" disabled>오답</button>
+                        <button id="check-answer-btn" class="bg-blue-500 text-white font-bold py-3 px-6 rounded-lg text-lg hover:bg-blue-600 transition hidden">정답 확인</button>
                         <button id="next-round-btn" class="bg-gray-500 text-white font-bold py-3 px-6 rounded-lg text-lg hover:bg-gray-600 transition hidden">다음 문제</button>
-                         <button id="reset-game-btn" class="bg-yellow-500 text-gray-800 font-bold py-3 px-6 rounded-lg text-lg hover:bg-yellow-600 transition">처음으로</button>
+                        <button id="reset-game-btn" class="bg-yellow-500 text-gray-800 font-bold py-3 px-6 rounded-lg text-lg hover:bg-yellow-600 transition">처음으로</button>
                     </div>
                 </div>
 
@@ -120,8 +119,6 @@
 
         // --- 오디오 객체 ---
         const bellSound = new Audio('bell.mp3');
-        const correctSound = new Audio('correct.mp3');
-        const incorrectSound = new Audio('incorrect.mp3');
 
         // --- DOM 요소 ---
         const createSessionScreen = document.getElementById('create-session-screen');
@@ -135,8 +132,7 @@
         const cardContainer = document.getElementById('card-container');
         const cardView = document.getElementById('card-view');
         const settingsView = document.getElementById('settings-view');
-        const awardBtn = document.getElementById('award-btn');
-        const incorrectBtn = document.getElementById('incorrect-btn');
+        const checkAnswerBtn = document.getElementById('check-answer-btn');
         const nextRoundBtn = document.getElementById('next-round-btn');
         const resetGameBtn = document.getElementById('reset-game-btn');
         const answerDisplay = document.getElementById('answer-display');
@@ -149,12 +145,30 @@
         // --- 이벤트 리스너 ---
         createSessionBtn.addEventListener('click', createSession);
         startRoundBtn.addEventListener('click', startRound);
-        awardBtn.addEventListener('click', () => awardPoints(true));
-        incorrectBtn.addEventListener('click', () => awardPoints(false));
-        nextRoundBtn.addEventListener('click', resetForNextRound);
+        checkAnswerBtn.addEventListener('click', showAnswer);
+        nextRoundBtn.addEventListener('click', startRound);
         resetGameBtn.addEventListener('click', resetGame);
+        
+        scoreboard.addEventListener('click', e => {
+            const target = e.target;
+            if (target.matches('.score-plus')) {
+                const teamName = target.dataset.teamname;
+                adjustScore(teamName, 10);
+            } else if (target.matches('.score-minus')) {
+                const teamName = target.dataset.teamname;
+                adjustScore(teamName, -10);
+            }
+        });
 
-        // --- 함수 (최신 문법으로 수정) ---
+        // --- 함수 ---
+        async function adjustScore(teamName, amount) {
+            const sessionRef = doc(db, 'sessions', currentSessionId);
+            const updatePath = `teams.${teamName}.score`;
+            await updateDoc(sessionRef, {
+                [updatePath]: increment(amount)
+            });
+        }
+
         async function createSession() {
             currentSessionId = Math.floor(1000 + Math.random() * 9000).toString();
             const sessionRef = doc(db, 'sessions', currentSessionId);
@@ -192,7 +206,14 @@
             sortedTeams.forEach(([teamName, teamData]) => {
                 const li = document.createElement('li');
                 li.className = 'flex justify-between items-center p-2 bg-white rounded-lg';
-                li.innerHTML = `<span class="font-medium">${teamName}</span><span class="font-bold text-lg text-indigo-600">${teamData.score}점</span>`;
+                li.innerHTML = `
+                    <span class="font-medium">${teamName}</span>
+                    <div class="flex items-center gap-2">
+                        <span class="font-bold text-lg text-indigo-600">${teamData.score}점</span>
+                        <button data-teamname="${teamName}" class="score-plus bg-green-500 text-white w-7 h-7 rounded-full font-bold text-lg leading-none hover:bg-green-600">+</button>
+                        <button data-teamname="${teamName}" class="score-minus bg-red-500 text-white w-7 h-7 rounded-full font-bold text-lg leading-none hover:bg-red-600">-</button>
+                    </div>
+                `;
                 scoreboard.appendChild(li);
             });
         }
@@ -207,8 +228,6 @@
             
             if (buzzerOrder.length === 0) {
                 buzzerList.innerHTML = '<li class="text-gray-400">대기 중...</li>';
-                awardBtn.disabled = true;
-                incorrectBtn.disabled = true;
                 return;
             }
             
@@ -218,8 +237,6 @@
                 if (index === 0) {
                     li.classList.add('first-place');
                     li.innerHTML = `<span class="text-2xl mr-2">🥇</span> <span class="font-bold text-lg">${buzzer.teamName}</span>`;
-                    awardBtn.disabled = false;
-                    incorrectBtn.disabled = false;
                 } else {
                     li.innerHTML = `<span class="font-semibold mr-2">${index + 1}.</span> <span class="font-medium">${buzzer.teamName}</span>`;
                 }
@@ -230,8 +247,11 @@
         async function startRound() {
             settingsView.style.display = 'none';
             cardView.classList.remove('hidden');
-            nextRoundBtn.classList.add('hidden');
+            nextRoundBtn.classList.remove('hidden');
+            checkAnswerBtn.classList.remove('hidden');
+            checkAnswerBtn.disabled = false;
             startRoundBtn.disabled = true;
+            answerDisplay.textContent = ''; // 이전 정답 지우기
 
             const cardCount = parseInt(cardCountInput.value);
             currentCards = [];
@@ -246,7 +266,6 @@
                 cardEl.textContent = card.name;
                 cardContainer.appendChild(cardEl);
             });
-            answerDisplay.textContent = '';
             
             const sessionRef = doc(db, 'sessions', currentSessionId);
             await updateDoc(sessionRef, {
@@ -269,39 +288,18 @@
             return false;
         }
 
-        async function awardPoints(isCorrect) {
-            const sessionRef = doc(db, 'sessions', currentSessionId);
-            const docSnap = await getDoc(sessionRef);
-            const data = docSnap.data();
-
-            if (data.buzzerOrder.length === 0) return;
-
+        function showAnswer() {
             const isGameCorrect = checkAnswer();
             answerDisplay.textContent = isGameCorrect ? "O 정답입니다" : "X 오답입니다";
             answerDisplay.style.color = isGameCorrect ? 'blue' : 'red';
-
-            if (isCorrect) {
-                correctSound.play();
-                const winningTeam = data.buzzerOrder[0].teamName;
-                const updatePath = `teams.${winningTeam}.score`;
-                await updateDoc(sessionRef, {
-                    [updatePath]: increment(10)
-                });
-            } else {
-                incorrectSound.play();
-            }
-
-            await updateDoc(sessionRef, { gameState: 'scoring' });
-            
-            awardBtn.disabled = true;
-            incorrectBtn.disabled = true;
-            nextRoundBtn.classList.remove('hidden');
+            checkAnswerBtn.disabled = true;
         }
         
         async function resetForNextRound() {
             settingsView.style.display = 'flex';
             cardView.classList.add('hidden');
             nextRoundBtn.classList.add('hidden');
+            checkAnswerBtn.classList.add('hidden');
             startRoundBtn.disabled = false;
             answerDisplay.textContent = '';
             
@@ -323,8 +321,15 @@
                 gameState: 'waiting'
             });
 
-            resetForNextRound();
+            // resetForNextRound()는 이제 '처음으로'에서만 사용됨
+            settingsView.style.display = 'flex';
+            cardView.classList.add('hidden');
+            nextRoundBtn.classList.add('hidden');
+            checkAnswerBtn.classList.add('hidden');
+            startRoundBtn.disabled = false;
+            answerDisplay.textContent = '';
         }
     </script>
 </body>
 </html>
+
