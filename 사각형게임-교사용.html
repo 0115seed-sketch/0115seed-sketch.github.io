@@ -86,25 +86,26 @@
         </div>
     </div>
 
-    <!-- Firebase SDK -->
-    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore-compat.js"></script>
-
-    <script>
-        // --- 1. 제가 해야 할 일: 여기에 Firebase 설정을 붙여넣으세요 ---
+    <!-- 스크립트 타입 'module'로 변경 -->
+    <script type="module">
+        // --- Firebase 설정 ---
         const firebaseConfig = {
             apiKey: "AIzaSyDaEEBdKzMONv9f8YgTWLK4s2PJFjTM31Q",
             authDomain: "card-game-class.firebaseapp.com",
             projectId: "card-game-class",
-            storageBucket: "card-game-class.firebasestorage.app",
+            storageBucket: "card-game-class.appspot.com",
             messagingSenderId: "620033523838",
             appId: "1:620033523838:web:6e37f0e6b4d0bab7b1d82f",
             measurementId: "G-F9JV9Z17QF"
         };
-        // -------------------------------------------------------------
+        // -------------------------------------------------
 
-        firebase.initializeApp(firebaseConfig);
-        const db = firebase.firestore();
+        // Firebase v9(모듈식) SDK 가져오기
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js";
+        import { getFirestore, doc, setDoc, onSnapshot, updateDoc, serverTimestamp, increment, getDoc } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js";
+
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
 
         // --- 데이터 정의 ---
         const CARDS = [
@@ -118,7 +119,7 @@
         };
 
         // --- 오디오 객체 ---
-        const bellSound = new Audio('bell.mp3'); // 학생이 종 누를 때
+        const bellSound = new Audio('bell.mp3');
         const correctSound = new Audio('correct.mp3');
         const incorrectSound = new Audio('incorrect.mp3');
 
@@ -142,9 +143,9 @@
 
         // --- 게임 상태 변수 ---
         let currentSessionId = null;
-        let sessionUnsubscribe = null; // 실시간 리스너 해제용
+        let sessionUnsubscribe = null;
         let currentCards = [];
-        
+
         // --- 이벤트 리스너 ---
         createSessionBtn.addEventListener('click', createSession);
         startRoundBtn.addEventListener('click', startRound);
@@ -153,13 +154,13 @@
         nextRoundBtn.addEventListener('click', resetForNextRound);
         resetGameBtn.addEventListener('click', resetGame);
 
-        // --- 함수 ---
+        // --- 함수 (최신 문법으로 수정) ---
         async function createSession() {
             currentSessionId = Math.floor(1000 + Math.random() * 9000).toString();
-            const sessionRef = db.collection('sessions').doc(currentSessionId);
-            await sessionRef.set({
-                createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-                gameState: 'waiting', // waiting, question, scoring
+            const sessionRef = doc(db, 'sessions', currentSessionId);
+            await setDoc(sessionRef, {
+                createdAt: serverTimestamp(),
+                gameState: 'waiting',
                 teams: {},
                 buzzerOrder: [],
                 currentCards: []
@@ -172,13 +173,13 @@
 
         function listenToSession() {
             if (sessionUnsubscribe) sessionUnsubscribe();
-            sessionUnsubscribe = db.collection('sessions').doc(currentSessionId)
-                .onSnapshot(doc => {
-                    const data = doc.data();
-                    if (!data) return;
-                    updateScoreboard(data.teams);
-                    updateBuzzerList(data.buzzerOrder);
-                });
+            const sessionRef = doc(db, 'sessions', currentSessionId);
+            sessionUnsubscribe = onSnapshot(sessionRef, (doc) => {
+                const data = doc.data();
+                if (!data) return;
+                updateScoreboard(data.teams);
+                updateBuzzerList(data.buzzerOrder);
+            });
         }
 
         function updateScoreboard(teams) {
@@ -195,7 +196,7 @@
                 scoreboard.appendChild(li);
             });
         }
-        
+
         let lastBuzzerLength = 0;
         function updateBuzzerList(buzzerOrder) {
             buzzerList.innerHTML = '';
@@ -227,20 +228,17 @@
         }
 
         async function startRound() {
-            // UI 변경
             settingsView.style.display = 'none';
             cardView.classList.remove('hidden');
             nextRoundBtn.classList.add('hidden');
             startRoundBtn.disabled = true;
 
-            // 카드 생성
             const cardCount = parseInt(cardCountInput.value);
             currentCards = [];
             for (let i = 0; i < cardCount; i++) {
                 currentCards.push(CARDS[Math.floor(Math.random() * CARDS.length)]);
             }
             
-            // 카드 화면 표시
             cardContainer.innerHTML = '';
             currentCards.forEach(card => {
                 const cardEl = document.createElement('div');
@@ -250,12 +248,11 @@
             });
             answerDisplay.textContent = '';
             
-            // Firebase 상태 업데이트
-            const sessionRef = db.collection('sessions').doc(currentSessionId);
-            await sessionRef.update({
+            const sessionRef = doc(db, 'sessions', currentSessionId);
+            await updateDoc(sessionRef, {
                 gameState: 'question',
                 currentCards: currentCards,
-                buzzerOrder: [] // 버저 리스트 초기화
+                buzzerOrder: []
             });
             lastBuzzerLength = 0;
         }
@@ -273,9 +270,9 @@
         }
 
         async function awardPoints(isCorrect) {
-            const sessionRef = db.collection('sessions').doc(currentSessionId);
-            const doc = await sessionRef.get();
-            const data = doc.data();
+            const sessionRef = doc(db, 'sessions', currentSessionId);
+            const docSnap = await getDoc(sessionRef);
+            const data = docSnap.data();
 
             if (data.buzzerOrder.length === 0) return;
 
@@ -283,21 +280,19 @@
             answerDisplay.textContent = isGameCorrect ? "O 정답입니다" : "X 오답입니다";
             answerDisplay.style.color = isGameCorrect ? 'blue' : 'red';
 
-
             if (isCorrect) {
                 correctSound.play();
                 const winningTeam = data.buzzerOrder[0].teamName;
                 const updatePath = `teams.${winningTeam}.score`;
-                await sessionRef.update({
-                    [updatePath]: firebase.firestore.FieldValue.increment(10)
+                await updateDoc(sessionRef, {
+                    [updatePath]: increment(10)
                 });
             } else {
                 incorrectSound.play();
             }
 
-            await sessionRef.update({ gameState: 'scoring' });
+            await updateDoc(sessionRef, { gameState: 'scoring' });
             
-            // UI 업데이트
             awardBtn.disabled = true;
             incorrectBtn.disabled = true;
             nextRoundBtn.classList.remove('hidden');
@@ -310,24 +305,24 @@
             startRoundBtn.disabled = false;
             answerDisplay.textContent = '';
             
-            const sessionRef = db.collection('sessions').doc(currentSessionId);
-            await sessionRef.update({
+            const sessionRef = doc(db, 'sessions', currentSessionId);
+            await updateDoc(sessionRef, {
                 gameState: 'waiting',
                 buzzerOrder: []
             });
-             lastBuzzerLength = 0;
+            lastBuzzerLength = 0;
         }
 
         async function resetGame() {
             if (!confirm('정말 게임을 초기화하고 처음으로 돌아가시겠습니까? 점수도 모두 초기화됩니다.')) return;
             
-            await db.collection('sessions').doc(currentSessionId).update({
+            const sessionRef = doc(db, 'sessions', currentSessionId);
+            await updateDoc(sessionRef, {
                 teams: {},
                 buzzerOrder: [],
                 gameState: 'waiting'
             });
 
-            // UI 초기화
             resetForNextRound();
         }
     </script>
