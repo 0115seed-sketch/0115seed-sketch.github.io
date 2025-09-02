@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>사각형 게임 - 학생용</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Noto Sans KR', sans-serif; }
+        .screen { display: none; }
+        .screen.active { display: flex; }
+        #buzzer-btn { transition: all 0.2s ease; }
+    </style>
+</head>
+<body class="bg-gray-100 flex items-center justify-center min-h-screen">
+
+    <div class="w-full max-w-md mx-auto p-4">
+        <!-- 스크린 1: 접속 -->
+        <div id="join-screen" class="screen active flex-col items-center bg-white p-8 rounded-2xl shadow-lg">
+            <h1 class="text-3xl font-bold mb-6">수업 참여하기</h1>
+            <div class="w-full mb-4">
+                <label for="session-id-input" class="block text-lg font-medium text-gray-700 mb-2">수업 ID</label>
+                <input type="number" id="session-id-input" class="w-full p-3 text-center text-2xl border-2 border-gray-300 rounded-lg" placeholder="예: 1234">
+            </div>
+            <div class="w-full mb-6">
+                <label for="team-name-input" class="block text-lg font-medium text-gray-700 mb-2">모둠(팀) 이름</label>
+                <input type="text" id="team-name-input" class="w-full p-3 text-center text-2xl border-2 border-gray-300 rounded-lg" placeholder="예: 1모둠">
+            </div>
+            <button id="join-btn" class="w-full bg-indigo-600 text-white font-bold py-4 rounded-xl text-xl hover:bg-indigo-700 transition">참가하기</button>
+            <p id="error-message" class="text-red-500 mt-4 h-6"></p>
+        </div>
+
+        <!-- 스크린 2: 게임 -->
+        <div id="buzzer-screen" class="screen hidden flex-col items-center">
+            <div class="w-full bg-white p-4 rounded-xl shadow-md mb-4 text-center">
+                <h2 class="text-xl font-bold"><span id="my-team-name" class="text-indigo-600"></span> 모둠</h2>
+            </div>
+            <!-- 점수판 -->
+            <div class="w-full bg-white p-4 rounded-xl shadow-md mb-4">
+                <h3 class="text-lg font-bold text-center mb-2">🏆 점수판</h3>
+                <ul id="scoreboard-student" class="space-y-1 text-sm">
+                    <!-- JS로 생성 -->
+                </ul>
+            </div>
+            <div id="buzzer-container" class="w-full">
+                <button id="buzzer-btn" class="w-full h-64 rounded-2xl text-5xl font-bold transition-colors duration-300 flex items-center justify-center" disabled>
+                    <span id="buzzer-text">대기 중...</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore-compat.js"></script>
+    <script>
+        // --- 1. 제가 해야 할 일: 여기에 Firebase 설정을 붙여넣으세요 ---
+        const firebaseConfig = {
+            apiKey: "AIzaSyDaEEBdKzMONv9f8YgTWLK4s2PJFjTM31Q",
+            authDomain: "card-game-class.firebaseapp.com",
+            projectId: "card-game-class",
+            storageBucket: "card-game-class.firebasestorage.app",
+            messagingSenderId: "620033523838",
+            appId: "1:620033523838:web:6e37f0e6b4d0bab7b1d82f",
+            measurementId: "G-F9JV9Z17QF"
+        };
+        // -------------------------------------------------------------
+
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
+
+        // --- 오디오 객체 ---
+        const startSound = new Audio('start.mp3');
+
+        // --- DOM 요소 ---
+        const joinScreen = document.getElementById('join-screen');
+        const buzzerScreen = document.getElementById('buzzer-screen');
+        const sessionIdInput = document.getElementById('session-id-input');
+        const teamNameInput = document.getElementById('team-name-input');
+        const joinBtn = document.getElementById('join-btn');
+        const errorMessage = document.getElementById('error-message');
+        const myTeamName = document.getElementById('my-team-name');
+        const buzzerBtn = document.getElementById('buzzer-btn');
+        const buzzerText = document.getElementById('buzzer-text');
+        const scoreboardStudent = document.getElementById('scoreboard-student');
+
+        // --- 게임 상태 변수 ---
+        let currentSessionId = null;
+        let myTeam = null;
+        let sessionUnsubscribe = null;
+
+        // --- 이벤트 리스너 ---
+        joinBtn.addEventListener('click', joinSession);
+        buzzerBtn.addEventListener('click', buzz);
+
+        // --- 함수 ---
+        async function joinSession() {
+            const sessionId = sessionIdInput.value.trim();
+            const teamName = teamNameInput.value.trim();
+
+            if (!sessionId || !teamName) {
+                errorMessage.textContent = '수업 ID와 모둠 이름을 모두 입력하세요.';
+                return;
+            }
+
+            const sessionRef = db.collection('sessions').doc(sessionId);
+            const doc = await sessionRef.get();
+
+            if (!doc.exists) {
+                errorMessage.textContent = '존재하지 않는 수업 ID입니다.';
+                return;
+            }
+            
+            errorMessage.textContent = '';
+            myTeam = teamName;
+            currentSessionId = sessionId;
+            myTeamName.textContent = myTeam;
+
+            // 팀 정보 추가 또는 업데이트
+            const teamData = { score: 0 };
+            await sessionRef.set({ teams: { [myTeam]: teamData } }, { merge: true });
+
+            joinScreen.classList.remove('active');
+            buzzerScreen.classList.add('active');
+            listenToSession();
+        }
+        
+        function listenToSession() {
+            if (sessionUnsubscribe) sessionUnsubscribe();
+            sessionUnsubscribe = db.collection('sessions').doc(currentSessionId)
+                .onSnapshot(doc => {
+                    const data = doc.data();
+                    if (!data) return; // 세션이 삭제된 경우
+                    updateBuzzerState(data.gameState, data.buzzerOrder);
+                    updateScoreboard(data.teams);
+                });
+        }
+        
+        let buzzedThisRound = false;
+        function updateBuzzerState(gameState, buzzerOrder) {
+            const iHaveBuzzed = buzzerOrder.some(b => b.teamName === myTeam);
+            
+            switch (gameState) {
+                case 'waiting':
+                    buzzerBtn.disabled = true;
+                    buzzerText.textContent = '대기 중...';
+                    buzzerBtn.className = 'w-full h-64 rounded-2xl text-5xl font-bold bg-gray-400 text-white';
+                    buzzedThisRound = false;
+                    break;
+                case 'question':
+                    if (!buzzedThisRound) {
+                        startSound.play();
+                    }
+                    if (iHaveBuzzed) {
+                         buzzerBtn.disabled = true;
+                         buzzerText.textContent = '완료';
+                         buzzerBtn.className = 'w-full h-64 rounded-2xl text-5xl font-bold bg-indigo-500 text-white';
+                    } else {
+                         buzzerBtn.disabled = false;
+                         buzzerText.textContent = '종 누르기!';
+                         buzzerBtn.className = 'w-full h-64 rounded-2xl text-5xl font-bold bg-yellow-400 text-gray-800 hover:bg-yellow-500 active:scale-95';
+                    }
+                    break;
+                case 'scoring':
+                     buzzerBtn.disabled = true;
+                     buzzerText.textContent = '결과 확인';
+                     buzzerBtn.className = 'w-full h-64 rounded-2xl text-5xl font-bold bg-blue-300 text-white';
+                    break;
+            }
+        }
+        
+        function updateScoreboard(teams) {
+            scoreboardStudent.innerHTML = '';
+            const sortedTeams = Object.entries(teams).sort(([, a], [, b]) => b.score - a.score);
+             if (sortedTeams.length === 0) {
+                 return;
+            }
+            sortedTeams.forEach(([teamName, teamData]) => {
+                const li = document.createElement('li');
+                li.className = 'flex justify-between items-center p-1 bg-white rounded';
+                li.innerHTML = `<span class="font-medium">${teamName}</span><span class="font-bold text-indigo-600">${teamData.score}점</span>`;
+                scoreboardStudent.appendChild(li);
+            });
+        }
+
+        async function buzz() {
+            if (!currentSessionId || !myTeam) return;
+            buzzerBtn.disabled = true;
+            buzzedThisRound = true;
+            
+            const sessionRef = db.collection('sessions').doc(currentSessionId);
+            await sessionRef.update({
+                buzzerOrder: firebase.firestore.FieldValue.arrayUnion({
+                    teamName: myTeam,
+                    timestamp: firebase.firestore.FieldValue.serverTimestamp()
+                })
+            });
+        }
+    </script>
+</body>
+</html>
