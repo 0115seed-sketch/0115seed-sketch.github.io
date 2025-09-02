@@ -1,0 +1,335 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>사각형 게임 - 교사용</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Noto Sans KR', sans-serif; }
+        .screen { display: none; }
+        .screen.active { display: block; }
+        .card { transition: all 0.3s ease; }
+        .buzzer-item { transition: all 0.3s ease; transform: scale(1); }
+        .buzzer-item.first-place { background-color: #fef08a; transform: scale(1.05); }
+    </style>
+</head>
+<body class="bg-gray-100">
+
+    <div class="container mx-auto p-4 max-w-7xl">
+        <!-- 스크린 1: 세션 생성 -->
+        <div id="create-session-screen" class="screen active text-center bg-white p-8 rounded-2xl shadow-lg">
+            <h1 class="text-4xl font-bold mb-4">사각형 성질 실시간 수업</h1>
+            <p class="text-lg text-gray-600 mb-8">수업을 시작하려면 아래 버튼을 눌러주세요.</p>
+            <button id="create-session-btn" class="bg-indigo-600 text-white font-bold py-4 px-8 rounded-xl text-2xl hover:bg-indigo-700 transition-transform transform hover:scale-105">
+                수업 만들기
+            </button>
+        </div>
+
+        <!-- 스크린 2: 대기 및 게임 화면 -->
+        <div id="game-screen" class="screen">
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <!-- 왼쪽: 게임 컨트롤 및 카드 표시 -->
+                <div class="lg:col-span-2 bg-white p-6 rounded-2xl shadow-lg">
+                    <!-- 헤더: 수업 ID -->
+                    <div class="text-center mb-4 border-b pb-4">
+                        <h2 class="text-xl font-semibold text-gray-500">수업 ID (학생들에게 알려주세요)</h2>
+                        <p id="session-id-display" class="text-4xl font-bold text-indigo-600 tracking-widest bg-gray-100 p-2 rounded-lg select-all">....</p>
+                    </div>
+
+                    <!-- 카드 설정 -->
+                    <div id="settings-view" class="flex justify-center items-center gap-8 my-6">
+                        <div>
+                            <label for="card-count" class="block text-lg font-medium text-gray-700 mb-2">카드 수</label>
+                            <input type="number" id="card-count" value="3" min="2" max="5" class="w-full p-3 text-center text-lg border-2 border-gray-300 rounded-lg">
+                        </div>
+                        <button id="start-round-btn" class="bg-green-500 text-white font-bold py-3 px-6 rounded-xl text-xl self-end hover:bg-green-600 transition">라운드 시작</button>
+                    </div>
+
+                    <!-- 카드 표시 컨테이너 -->
+                    <div id="card-view" class="hidden">
+                        <div id="card-container" class="flex flex-wrap justify-center items-center gap-4 min-h-[140px] mb-4 bg-gray-50 p-4 rounded-lg">
+                            <!-- JS로 카드 생성 -->
+                        </div>
+                         <p id="answer-display" class="text-center text-2xl font-bold min-h-[40px]"></p>
+                    </div>
+
+                    <!-- 게임 컨트롤 버튼 -->
+                    <div class="mt-6 flex justify-center gap-4">
+                        <button id="award-btn" class="bg-blue-500 text-white font-bold py-3 px-6 rounded-lg text-lg hover:bg-blue-600 transition disabled:bg-gray-400" disabled>정답 (+10점)</button>
+                        <button id="incorrect-btn" class="bg-red-500 text-white font-bold py-3 px-6 rounded-lg text-lg hover:bg-red-600 transition disabled:bg-gray-400" disabled>오답</button>
+                        <button id="next-round-btn" class="bg-gray-500 text-white font-bold py-3 px-6 rounded-lg text-lg hover:bg-gray-600 transition hidden">다음 문제</button>
+                         <button id="reset-game-btn" class="bg-yellow-500 text-gray-800 font-bold py-3 px-6 rounded-lg text-lg hover:bg-yellow-600 transition">처음으로</button>
+                    </div>
+                </div>
+
+                <!-- 오른쪽: 접속 현황 및 스코어보드 -->
+                <div class="bg-white p-6 rounded-2xl shadow-lg">
+                    <h3 class="text-2xl font-bold text-center border-b pb-3 mb-4">실시간 현황판</h3>
+                    <!-- 버저 순위 -->
+                    <div id="buzzer-list-container" class="mb-4">
+                        <h4 class="font-semibold text-lg mb-2">🏁 종 누른 순서</h4>
+                        <ul id="buzzer-list" class="space-y-2 min-h-[100px] bg-gray-50 p-3 rounded-lg">
+                            <li class="text-gray-400">대기 중...</li>
+                        </ul>
+                    </div>
+                    <!-- 점수판 -->
+                    <div>
+                        <h4 class="font-semibold text-lg mb-2">🏆 점수판</h4>
+                        <ul id="scoreboard" class="space-y-2 min-h-[200px] bg-gray-50 p-3 rounded-lg">
+                             <li class="text-gray-400">참가팀 없음</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore-compat.js"></script>
+
+    <script>
+        // --- 1. 제가 해야 할 일: 여기에 Firebase 설정을 붙여넣으세요 ---
+        const firebaseConfig = {
+            apiKey: "AIzaSyDaEEBdKzMONv9f8YgTWLK4s2PJFjTM31Q",
+            authDomain: "card-game-class.firebaseapp.com",
+            projectId: "card-game-class",
+            storageBucket: "card-game-class.firebasestorage.app",
+            messagingSenderId: "620033523838",
+            appId: "1:620033523838:web:6e37f0e6b4d0bab7b1d82f",
+            measurementId: "G-F9JV9Z17QF"
+        };
+        // -------------------------------------------------------------
+
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
+
+        // --- 데이터 정의 ---
+        const CARDS = [
+            { id: 's1', name: '사다리꼴', type: 'shape' }, { id: 's2', name: '평행사변형', type: 'shape' },
+            { id: 's3', name: '마름모', type: 'shape' }, { id: 's4', name: '직사각형', type: 'shape' },
+            { id: 's5', name: '정사각형', type: 'shape' }, { id: 'p1', name: '두 대각선의 길이가 같다.', type: 'property' },
+            { id: 'p2', name: '두 대각선이 서로 수직이다.', type: 'property' }, { id: 'p3', name: '두 대각선이 서로를 이등분한다.', type: 'property' },
+        ];
+        const RELATIONSHIPS = {
+            's1': [], 's2': ['p3'], 's3': ['p2', 'p3'], 's4': ['p1', 'p3'], 's5': ['p1', 'p2', 'p3'],
+        };
+
+        // --- 오디오 객체 ---
+        const bellSound = new Audio('bell.mp3'); // 학생이 종 누를 때
+        const correctSound = new Audio('correct.mp3');
+        const incorrectSound = new Audio('incorrect.mp3');
+
+        // --- DOM 요소 ---
+        const createSessionScreen = document.getElementById('create-session-screen');
+        const gameScreen = document.getElementById('game-screen');
+        const createSessionBtn = document.getElementById('create-session-btn');
+        const sessionIdDisplay = document.getElementById('session-id-display');
+        const scoreboard = document.getElementById('scoreboard');
+        const buzzerList = document.getElementById('buzzer-list');
+        const startRoundBtn = document.getElementById('start-round-btn');
+        const cardCountInput = document.getElementById('card-count');
+        const cardContainer = document.getElementById('card-container');
+        const cardView = document.getElementById('card-view');
+        const settingsView = document.getElementById('settings-view');
+        const awardBtn = document.getElementById('award-btn');
+        const incorrectBtn = document.getElementById('incorrect-btn');
+        const nextRoundBtn = document.getElementById('next-round-btn');
+        const resetGameBtn = document.getElementById('reset-game-btn');
+        const answerDisplay = document.getElementById('answer-display');
+
+        // --- 게임 상태 변수 ---
+        let currentSessionId = null;
+        let sessionUnsubscribe = null; // 실시간 리스너 해제용
+        let currentCards = [];
+        
+        // --- 이벤트 리스너 ---
+        createSessionBtn.addEventListener('click', createSession);
+        startRoundBtn.addEventListener('click', startRound);
+        awardBtn.addEventListener('click', () => awardPoints(true));
+        incorrectBtn.addEventListener('click', () => awardPoints(false));
+        nextRoundBtn.addEventListener('click', resetForNextRound);
+        resetGameBtn.addEventListener('click', resetGame);
+
+        // --- 함수 ---
+        async function createSession() {
+            currentSessionId = Math.floor(1000 + Math.random() * 9000).toString();
+            const sessionRef = db.collection('sessions').doc(currentSessionId);
+            await sessionRef.set({
+                createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+                gameState: 'waiting', // waiting, question, scoring
+                teams: {},
+                buzzerOrder: [],
+                currentCards: []
+            });
+            sessionIdDisplay.textContent = currentSessionId;
+            createSessionScreen.classList.remove('active');
+            gameScreen.classList.add('active');
+            listenToSession();
+        }
+
+        function listenToSession() {
+            if (sessionUnsubscribe) sessionUnsubscribe();
+            sessionUnsubscribe = db.collection('sessions').doc(currentSessionId)
+                .onSnapshot(doc => {
+                    const data = doc.data();
+                    if (!data) return;
+                    updateScoreboard(data.teams);
+                    updateBuzzerList(data.buzzerOrder);
+                });
+        }
+
+        function updateScoreboard(teams) {
+            scoreboard.innerHTML = '';
+            const sortedTeams = Object.entries(teams).sort(([, a], [, b]) => b.score - a.score);
+            if (sortedTeams.length === 0) {
+                 scoreboard.innerHTML = '<li class="text-gray-400">참가팀 없음</li>';
+                 return;
+            }
+            sortedTeams.forEach(([teamName, teamData]) => {
+                const li = document.createElement('li');
+                li.className = 'flex justify-between items-center p-2 bg-white rounded-lg';
+                li.innerHTML = `<span class="font-medium">${teamName}</span><span class="font-bold text-lg text-indigo-600">${teamData.score}점</span>`;
+                scoreboard.appendChild(li);
+            });
+        }
+        
+        let lastBuzzerLength = 0;
+        function updateBuzzerList(buzzerOrder) {
+            buzzerList.innerHTML = '';
+             if (buzzerOrder.length > lastBuzzerLength) {
+                bellSound.play();
+            }
+            lastBuzzerLength = buzzerOrder.length;
+            
+            if (buzzerOrder.length === 0) {
+                buzzerList.innerHTML = '<li class="text-gray-400">대기 중...</li>';
+                awardBtn.disabled = true;
+                incorrectBtn.disabled = true;
+                return;
+            }
+            
+            buzzerOrder.forEach((buzzer, index) => {
+                const li = document.createElement('li');
+                li.className = 'buzzer-item flex items-center p-2 bg-white rounded-lg';
+                if (index === 0) {
+                    li.classList.add('first-place');
+                    li.innerHTML = `<span class="text-2xl mr-2">🥇</span> <span class="font-bold text-lg">${buzzer.teamName}</span>`;
+                    awardBtn.disabled = false;
+                    incorrectBtn.disabled = false;
+                } else {
+                    li.innerHTML = `<span class="font-semibold mr-2">${index + 1}.</span> <span class="font-medium">${buzzer.teamName}</span>`;
+                }
+                buzzerList.appendChild(li);
+            });
+        }
+
+        async function startRound() {
+            // UI 변경
+            settingsView.style.display = 'none';
+            cardView.classList.remove('hidden');
+            nextRoundBtn.classList.add('hidden');
+            startRoundBtn.disabled = true;
+
+            // 카드 생성
+            const cardCount = parseInt(cardCountInput.value);
+            currentCards = [];
+            for (let i = 0; i < cardCount; i++) {
+                currentCards.push(CARDS[Math.floor(Math.random() * CARDS.length)]);
+            }
+            
+            // 카드 화면 표시
+            cardContainer.innerHTML = '';
+            currentCards.forEach(card => {
+                const cardEl = document.createElement('div');
+                cardEl.className = 'card bg-gray-200 border-2 rounded-xl p-4 flex items-center justify-center text-center font-medium h-28 w-32 shadow-md';
+                cardEl.textContent = card.name;
+                cardContainer.appendChild(cardEl);
+            });
+            answerDisplay.textContent = '';
+            
+            // Firebase 상태 업데이트
+            const sessionRef = db.collection('sessions').doc(currentSessionId);
+            await sessionRef.update({
+                gameState: 'question',
+                currentCards: currentCards,
+                buzzerOrder: [] // 버저 리스트 초기화
+            });
+            lastBuzzerLength = 0;
+        }
+
+        function checkAnswer() {
+            const shapes = currentCards.filter(c => c.type === 'shape');
+            const properties = currentCards.filter(c => c.type === 'property');
+            if (!shapes.length || !properties.length) return false;
+            for (const shape of shapes) {
+                for (const prop of properties) {
+                    if (RELATIONSHIPS[shape.id].includes(prop.id)) return true;
+                }
+            }
+            return false;
+        }
+
+        async function awardPoints(isCorrect) {
+            const sessionRef = db.collection('sessions').doc(currentSessionId);
+            const doc = await sessionRef.get();
+            const data = doc.data();
+
+            if (data.buzzerOrder.length === 0) return;
+
+            const isGameCorrect = checkAnswer();
+            answerDisplay.textContent = isGameCorrect ? "O 정답입니다" : "X 오답입니다";
+            answerDisplay.style.color = isGameCorrect ? 'blue' : 'red';
+
+
+            if (isCorrect) {
+                correctSound.play();
+                const winningTeam = data.buzzerOrder[0].teamName;
+                const updatePath = `teams.${winningTeam}.score`;
+                await sessionRef.update({
+                    [updatePath]: firebase.firestore.FieldValue.increment(10)
+                });
+            } else {
+                incorrectSound.play();
+            }
+
+            await sessionRef.update({ gameState: 'scoring' });
+            
+            // UI 업데이트
+            awardBtn.disabled = true;
+            incorrectBtn.disabled = true;
+            nextRoundBtn.classList.remove('hidden');
+        }
+        
+        async function resetForNextRound() {
+            settingsView.style.display = 'flex';
+            cardView.classList.add('hidden');
+            nextRoundBtn.classList.add('hidden');
+            startRoundBtn.disabled = false;
+            answerDisplay.textContent = '';
+            
+            const sessionRef = db.collection('sessions').doc(currentSessionId);
+            await sessionRef.update({
+                gameState: 'waiting',
+                buzzerOrder: []
+            });
+             lastBuzzerLength = 0;
+        }
+
+        async function resetGame() {
+            if (!confirm('정말 게임을 초기화하고 처음으로 돌아가시겠습니까? 점수도 모두 초기화됩니다.')) return;
+            
+            await db.collection('sessions').doc(currentSessionId).update({
+                teams: {},
+                buzzerOrder: [],
+                gameState: 'waiting'
+            });
+
+            // UI 초기화
+            resetForNextRound();
+        }
+    </script>
+</body>
+</html>
