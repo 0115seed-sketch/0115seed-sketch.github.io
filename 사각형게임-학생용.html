@@ -190,6 +190,10 @@
             buzzedThisRound = true;
             
             const sessionRef = db.collection('sessions').doc(currentSessionId);
+            
+            // --- 수정된 부분 ---
+            // 어떤 팀이(myTeam), 언제(serverTimestamp) 눌렀는지
+            // 객체 형태로 정확히 전달합니다.
             await sessionRef.update({
                 buzzerOrder: firebase.firestore.FieldValue.arrayUnion({
                     teamName: myTeam,
