@@ -50,25 +50,27 @@
             </div>
         </div>
     </div>
-
-    <!-- Firebase SDK -->
-    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore-compat.js"></script>
-    <script>
-        // --- 1. 제가 해야 할 일: 여기에 Firebase 설정을 붙여넣으세요 ---
+    
+    <!-- 스크립트 타입 'module'로 변경 -->
+    <script type="module">
+        // --- Firebase 설정 ---
         const firebaseConfig = {
             apiKey: "AIzaSyDaEEBdKzMONv9f8YgTWLK4s2PJFjTM31Q",
             authDomain: "card-game-class.firebaseapp.com",
             projectId: "card-game-class",
-            storageBucket: "card-game-class.firebasestorage.app",
+            storageBucket: "card-game-class.appspot.com",
             messagingSenderId: "620033523838",
             appId: "1:620033523838:web:6e37f0e6b4d0bab7b1d82f",
             measurementId: "G-F9JV9Z17QF"
         };
-        // -------------------------------------------------------------
+        // -------------------------------------------------
 
-        firebase.initializeApp(firebaseConfig);
-        const db = firebase.firestore();
+        // Firebase v9(모듈식) SDK 가져오기
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js";
+        import { getFirestore, doc, getDoc, setDoc, onSnapshot, updateDoc, serverTimestamp, arrayUnion } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js";
+
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
 
         // --- 오디오 객체 ---
         const startSound = new Audio('start.mp3');
@@ -94,7 +96,7 @@
         joinBtn.addEventListener('click', joinSession);
         buzzerBtn.addEventListener('click', buzz);
 
-        // --- 함수 ---
+        // --- 함수 (최신 문법으로 수정) ---
         async function joinSession() {
             const sessionId = sessionIdInput.value.trim();
             const teamName = teamNameInput.value.trim();
@@ -104,10 +106,10 @@
                 return;
             }
 
-            const sessionRef = db.collection('sessions').doc(sessionId);
-            const doc = await sessionRef.get();
+            const sessionRef = doc(db, 'sessions', sessionId);
+            const docSnap = await getDoc(sessionRef);
 
-            if (!doc.exists) {
+            if (!docSnap.exists()) {
                 errorMessage.textContent = '존재하지 않는 수업 ID입니다.';
                 return;
             }
@@ -117,9 +119,8 @@
             currentSessionId = sessionId;
             myTeamName.textContent = myTeam;
 
-            // 팀 정보 추가 또는 업데이트
             const teamData = { score: 0 };
-            await sessionRef.set({ teams: { [myTeam]: teamData } }, { merge: true });
+            await setDoc(sessionRef, { teams: { [myTeam]: teamData } }, { merge: true });
 
             joinScreen.classList.remove('active');
             buzzerScreen.classList.add('active');
@@ -128,13 +129,13 @@
         
         function listenToSession() {
             if (sessionUnsubscribe) sessionUnsubscribe();
-            sessionUnsubscribe = db.collection('sessions').doc(currentSessionId)
-                .onSnapshot(doc => {
-                    const data = doc.data();
-                    if (!data) return; // 세션이 삭제된 경우
-                    updateBuzzerState(data.gameState, data.buzzerOrder);
-                    updateScoreboard(data.teams);
-                });
+            const sessionRef = doc(db, 'sessions', currentSessionId);
+            sessionUnsubscribe = onSnapshot(sessionRef, (doc) => {
+                const data = doc.data();
+                if (!data) return;
+                updateBuzzerState(data.gameState, data.buzzerOrder);
+                updateScoreboard(data.teams);
+            });
         }
         
         let buzzedThisRound = false;
@@ -189,15 +190,11 @@
             buzzerBtn.disabled = true;
             buzzedThisRound = true;
             
-            const sessionRef = db.collection('sessions').doc(currentSessionId);
-            
-            // --- 수정된 부분 ---
-            // 어떤 팀이(myTeam), 언제(serverTimestamp) 눌렀는지
-            // 객체 형태로 정확히 전달합니다.
-            await sessionRef.update({
-                buzzerOrder: firebase.firestore.FieldValue.arrayUnion({
+            const sessionRef = doc(db, 'sessions', currentSessionId);
+            await updateDoc(sessionRef, {
+                buzzerOrder: arrayUnion({
                     teamName: myTeam,
-                    timestamp: firebase.firestore.FieldValue.serverTimestamp()
+                    timestamp: serverTimestamp()
                 })
             });
         }
