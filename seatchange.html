@@ -431,13 +431,8 @@ document.addEventListener('DOMContentLoaded', () => {
         localStorage.setItem('seatAssignments', JSON.stringify(seatAssignments));
     }
     
+    // [수정] saveAsImage 함수에서 시점 강제 전환 로직 제거
     function saveAsImage() {
-        // 이미지 저장 시에는 항상 학생 시점으로 보이도록 강제
-        const wasTeacherView = isTeacherView;
-        if (wasTeacherView) {
-            toggleView(); // 학생 시점으로 전환
-        }
-
         // DOM이 업데이트될 시간을 약간 줌
         setTimeout(() => {
             html2canvas(document.getElementById('seating-chart-area'), { scale: 2, backgroundColor: '#ffffff' }).then(canvas => {
@@ -445,11 +440,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 link.download = 'seating-chart.png';
                 link.href = canvas.toDataURL('image/png');
                 link.click();
-
-                // 이미지를 저장한 후 원래 시점으로 복구
-                if (wasTeacherView) {
-                    toggleView();
-                }
             });
         }, 100);
     }
