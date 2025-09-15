@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>랜덤 돌림판</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Noto Sans KR', sans-serif;
+            touch-action: manipulation; /* 모바일에서 더블 탭 확대 방지 */
+        }
+        .wheel-container {
+            position: relative;
+            width: 400px;
+            height: 400px;
+        }
+        canvas {
+            transition: transform 5s cubic-bezier(0.25, 1, 0.5, 1);
+        }
+        .pin {
+            position: absolute;
+            top: -10px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 0;
+            height: 0;
+            border-left: 20px solid transparent;
+            border-right: 20px solid transparent;
+            border-top: 40px solid #ef4444; /* red-500 */
+            z-index: 10;
+            filter: drop-shadow(0 2px 2px rgba(0,0,0,0.3));
+        }
+        .pin::after {
+            content: '';
+            position: absolute;
+            top: -45px;
+            left: -10px;
+            width: 20px;
+            height: 20px;
+            background: #ef4444;
+            border-radius: 50%;
+            border: 3px solid white;
+            box-shadow: 0 0 5px rgba(0,0,0,0.3);
+        }
+        @media (max-width: 640px) {
+            .wheel-container {
+                width: 300px;
+                height: 300px;
+            }
+        }
+    </style>
+</head>
+<body class="bg-slate-100 text-slate-800 flex items-center justify-center min-h-screen p-4">
+
+    <div class="w-full max-w-4xl mx-auto bg-white rounded-2xl shadow-lg p-6 md:p-8">
+        <h1 class="text-3xl font-bold text-center mb-6 text-slate-700">랜덤 돌림판</h1>
+
+        <div class="grid md:grid-cols-2 gap-8">
+            <!-- Left Side: Controls & List -->
+            <div class="flex flex-col">
+                <div>
+                    <label for="items" class="block text-lg font-semibold mb-2 text-slate-600">추첨 항목</label>
+                    <textarea id="items" rows="8" class="w-full p-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition" placeholder="여기에 항목을 한 줄에 하나씩 입력하세요.&#10;예시)&#10;홍길동&#10;김철수&#10;이영희"></textarea>
+                </div>
+                
+                <!-- 뽑힌 항목 목록 -->
+                <div class="mt-4 border-t border-slate-200 pt-4 flex-grow">
+                    <h2 class="text-lg font-semibold mb-2 text-slate-600">뽑힌 항목</h2>
+                    <div class="bg-slate-50 p-3 rounded-lg min-h-[100px] max-h-32 overflow-y-auto">
+                        <ul id="drawn-item-list" class="space-y-2 text-slate-700">
+                            <!-- 뽑힌 항목이 여기에 동적으로 추가됩니다 -->
+                        </ul>
+                    </div>
+                </div>
+
+                <div class="mt-auto pt-4 flex space-x-2">
+                     <button id="set-button" class="flex-1 bg-indigo-500 text-white font-bold py-2 px-4 rounded-lg hover:bg-indigo-600 active:bg-indigo-700 transition-transform transform active:scale-95">
+                        돌림판 설정
+                    </button>
+                    <button id="reset-button" class="flex-1 bg-slate-500 text-white font-bold py-2 px-4 rounded-lg hover:bg-slate-600 active:bg-slate-700 transition-transform transform active:scale-95">
+                        초기화
+                    </button>
+                </div>
+            </div>
+
+            <!-- Right Side: Wheel -->
+            <div class="flex flex-col items-center justify-center space-y-6">
+                <div class="wheel-container">
+                    <div class="pin"></div>
+                    <canvas id="wheel" width="400" height="400"></canvas>
+                </div>
+                <button id="spin-button" class="w-full md:w-3/4 bg-red-500 text-white text-2xl font-bold py-4 px-6 rounded-lg hover:bg-red-600 active:bg-red-700 transition-transform transform active:scale-95 shadow-lg disabled:bg-slate-300 disabled:cursor-not-allowed">
+                    돌리기!
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('wheel');
+        const ctx = canvas.getContext('2d');
+        const spinButton = document.getElementById('spin-button');
+        const setButton = document.getElementById('set-button');
+        const resetButton = document.getElementById('reset-button');
+        const itemsTextarea = document.getElementById('items');
+        const drawnItemList = document.getElementById('drawn-item-list');
+
+        let items = [];
+        let isSpinning = false;
+        let currentRotation = 0;
+        let winnerItem = null;
+        let popOutAnimationId = null;
+        let popOutProgress = 0;
+
+        const colors = [
+            "#f87171", "#fb923c", "#facc15", "#a3e635", "#4ade80", "#34d399",
+            "#2dd4bf", "#22d3ee", "#38bdf8", "#60a5fa", "#818cf8", "#a78bfa",
+            "#c084fc", "#e879f9", "#f472b6", "#fb7185"
+        ];
+
+        function resizeCanvas() {
+            const container = canvas.parentElement;
+            const size = Math.min(container.clientWidth, container.clientHeight);
+            canvas.width = size;
+            canvas.height = size;
+            if (items.length > 0) drawWheel();
+        }
+
+        function drawWheel() {
+            const activeItems = items.filter(item => !item.selected);
+            const centerX = canvas.width / 2;
+            const centerY = canvas.height / 2;
+            
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            if (activeItems.length === 0 && items.length > 0) {
+                ctx.fillStyle = '#64748b';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.font = '20px Noto Sans KR';
+                ctx.fillText('모든 항목을 뽑았습니다!', centerX, centerY);
+                spinButton.disabled = true;
+                return;
+            }
+
+            const arcSize = 2 * Math.PI / activeItems.length;
+            const radius = Math.min(centerX, centerY) * 0.9;
+            ctx.font = `bold ${Math.max(12, radius / 12)}px Noto Sans KR`;
+
+            activeItems.forEach((item, i) => {
+                const angle = i * arcSize;
+                
+                ctx.save();
+                
+                // Winner pop-out animation
+                if (winnerItem && item.name === winnerItem.name) {
+                    const popOutDistance = radius * 0.08 * popOutProgress;
+                    const midAngle = angle + arcSize / 2;
+                    ctx.translate(Math.cos(midAngle) * popOutDistance, Math.sin(midAngle) * popOutDistance);
+                    ctx.shadowColor = 'rgba(0,0,0,0.3)';
+                    ctx.shadowBlur = 15;
+                    ctx.strokeStyle = "#f59e0b";
+                    ctx.lineWidth = 5;
+                } else {
+                    ctx.strokeStyle = "#ffffff";
+                    ctx.lineWidth = 3;
+                }
+                
+                // Draw segment
+                ctx.beginPath();
+                ctx.fillStyle = item.color;
+                ctx.moveTo(centerX, centerY);
+                ctx.arc(centerX, centerY, radius, angle, angle + arcSize);
+                ctx.closePath();
+                ctx.fill();
+                ctx.stroke();
+
+                // Draw text on top
+                ctx.save();
+                ctx.fillStyle = getContrastColor(item.color);
+                ctx.translate(centerX, centerY);
+                ctx.rotate(angle + arcSize / 2);
+                ctx.textAlign = 'right';
+                ctx.textBaseline = 'middle';
+                ctx.fillText(item.name, radius * 0.9, 0);
+                ctx.restore();
+
+                ctx.restore(); 
+            });
+        }
+
+        function animateWinnerPopOut() {
+            if (popOutAnimationId) cancelAnimationFrame(popOutAnimationId);
+            const startTime = performance.now();
+            const duration = 300; // 0.3 seconds
+
+            function animate(currentTime) {
+                const elapsedTime = currentTime - startTime;
+                popOutProgress = Math.min(elapsedTime / duration, 1);
+                drawWheel();
+                if (popOutProgress < 1) {
+                    popOutAnimationId = requestAnimationFrame(animate);
+                }
+            }
+            popOutAnimationId = requestAnimationFrame(animate);
+        }
+
+        function getContrastColor(hexcolor) {
+            if (hexcolor.slice(0, 1) === '#') hexcolor = hexcolor.slice(1);
+            const r = parseInt(hexcolor.substr(0, 2), 16);
+            const g = parseInt(hexcolor.substr(2, 2), 16);
+            const b = parseInt(hexcolor.substr(4, 2), 16);
+            const yiq = ((r * 299) + (g * 587) + (b * 114)) / 1000;
+            return (yiq >= 128) ? '#1e293b' : '#ffffff';
+        }
+
+        function setupItems() {
+            const itemNames = itemsTextarea.value.split('\n').map(name => name.trim()).filter(name => name.length > 0);
+            if(itemNames.length < 2){
+                alert("항목을 2개 이상 입력해주세요.");
+                return;
+            }
+            items = itemNames.map((name, i) => ({
+                name,
+                color: colors[i % colors.length],
+                selected: false
+            }));
+            reset();
+        }
+
+        function updateDrawnItemList() {
+            drawnItemList.innerHTML = '';
+            const selectedItems = items.filter(item => item.selected);
+            if (selectedItems.length === 0) {
+                const li = document.createElement('li');
+                li.textContent = '아직 뽑힌 항목이 없습니다.';
+                li.classList.add('italic', 'text-slate-400');
+                drawnItemList.appendChild(li);
+            } else {
+                selectedItems.forEach((item) => {
+                    const li = document.createElement('li');
+                    li.textContent = `🎉 ${item.name}`;
+                    li.classList.add('font-medium');
+                    drawnItemList.appendChild(li);
+                });
+            }
+        }
+
+        function spin() {
+            if (isSpinning || winnerItem) return;
+            const activeItems = items.filter(item => !item.selected);
+            if (activeItems.length === 0) {
+                alert('모든 항목이 선택되었습니다. 초기화 후 다시 시도해주세요.');
+                return;
+            }
+            
+            isSpinning = true;
+            spinButton.disabled = true;
+            if (popOutAnimationId) cancelAnimationFrame(popOutAnimationId);
+            popOutProgress = 0;
+
+            const winnerIndexOnWheel = Math.floor(Math.random() * activeItems.length);
+            const winner = activeItems[winnerIndexOnWheel];
+
+            const arcSizeDeg = 360 / activeItems.length;
+            const stopAngleDeg = winnerIndexOnWheel * arcSizeDeg + arcSizeDeg / 2;
+            const randomOffsetDeg = (Math.random() - 0.5) * (arcSizeDeg * 0.8);
+            const finalAngleDeg = 270 - (stopAngleDeg + randomOffsetDeg);
+            const spinAngleDeg = 360 * 10 + finalAngleDeg;
+
+            canvas.style.transition = 'none';
+            const currentActualRotation = currentRotation % 360;
+            canvas.style.transform = `rotate(${currentActualRotation}deg)`;
+            
+            canvas.getBoundingClientRect(); // Force reflow
+
+            setTimeout(() => {
+                canvas.style.transition = 'transform 5s cubic-bezier(0.25, 1, 0.5, 1)';
+                currentRotation = spinAngleDeg;
+                canvas.style.transform = `rotate(${currentRotation}deg)`;
+            }, 10);
+
+            canvas.addEventListener('transitionend', () => {
+                isSpinning = false;
+                winnerItem = winner;
+                animateWinnerPopOut();
+                // Add a listener to the whole window to confirm the winner
+                setTimeout(() => {
+                    window.addEventListener('click', confirmWinner, { once: true });
+                }, 100); // Small delay to prevent spin click from confirming
+            }, { once: true });
+        }
+        
+        function confirmWinner() {
+            if (!winnerItem || isSpinning) return;
+
+            const originalIndex = items.findIndex(item => item.name === winnerItem.name);
+            if (originalIndex !== -1) items[originalIndex].selected = true;
+            
+            winnerItem = null;
+            if (popOutAnimationId) cancelAnimationFrame(popOutAnimationId);
+            popOutProgress = 0;
+
+            updateDrawnItemList();
+            drawWheel();
+
+            const remainingItems = items.filter(item => !item.selected);
+            if (remainingItems.length > 0) {
+                spinButton.disabled = false;
+                spinButton.textContent = "다시 뽑기";
+            } else {
+                spinButton.textContent = "모두 뽑음";
+            }
+        }
+
+        function reset() {
+            items.forEach(item => item.selected = false);
+            isSpinning = false;
+            winnerItem = null;
+            if (popOutAnimationId) cancelAnimationFrame(popOutAnimationId);
+            popOutProgress = 0;
+            currentRotation = 0;
+            canvas.style.transition = 'none';
+            canvas.style.transform = `rotate(0deg)`;
+            
+            window.removeEventListener('click', confirmWinner);
+
+            updateDrawnItemList();
+            
+            if (items.length > 0) {
+                drawWheel();
+                spinButton.disabled = false;
+                spinButton.textContent = "돌리기!";
+            } else {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                spinButton.disabled = true;
+            }
+        }
+        
+        setButton.addEventListener('click', setupItems);
+        spinButton.addEventListener('click', spin);
+        resetButton.addEventListener('click', reset);
+        window.addEventListener('resize', resizeCanvas);
+
+        spinButton.disabled = true;
+        resizeCanvas();
+        itemsTextarea.value = "아이패드\n에어팟\n커피쿠폰\n꽝\n영화티켓\n백화점상품권";
+        setupItems();
+    </script>
+</body>
+</html>
+
