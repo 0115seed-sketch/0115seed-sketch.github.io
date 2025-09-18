@@ -1,0 +1,609 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>사진 선택 앱</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        .selected-overlay {
+            box-shadow: 0 0 0 4px #3b82f6;
+            transform: scale(1.05);
+        }
+        .hidden { display: none; }
+        .loader {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #3498db;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body class="bg-gray-50 text-gray-800">
+
+    <div id="app" class="max-w-7xl mx-auto p-4 md:p-6">
+
+        <!-- Header and Navigation -->
+        <header class="bg-white rounded-xl shadow-sm p-4 mb-6">
+            <nav class="flex justify-between items-center">
+                <h1 class="text-2xl font-bold text-blue-600">사진 선택</h1>
+                <div>
+                    <a href="#/" class="nav-link text-gray-600 hover:text-blue-600 font-medium px-3 py-2 rounded-md">사용자</a>
+                    <a href="#/stats" class="nav-link text-gray-600 hover:text-blue-600 font-medium px-3 py-2 rounded-md">통계</a>
+                    <a href="#/settings" class="nav-link text-gray-600 hover:text-blue-600 font-medium px-3 py-2 rounded-md">설정</a>
+                </div>
+            </nav>
+        </header>
+
+        <main>
+            <!-- User Page -->
+            <div id="user-page">
+                <div id="username-input-section" class="text-center p-8 bg-white rounded-xl shadow-sm">
+                    <h2 class="text-xl font-semibold mb-4">사용자명을 입력하세요. (선택 사항)</h2>
+                    <input type="text" id="username-input" class="w-full max-w-sm border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500 p-3 text-lg" placeholder="미입력 시 자동으로 이름이 생성됩니다.">
+                    <button id="start-btn" class="mt-4 w-full max-w-sm bg-blue-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-blue-700 transition duration-300 shadow-md">시작하기</button>
+                </div>
+
+                <div id="photo-selection-section" class="hidden">
+                    <div class="flex justify-between items-center mb-4">
+                        <h2 class="text-xl font-semibold">안녕하세요, <span id="display-username" class="text-blue-600"></span>님! 사진을 선택해주세요.</h2>
+                        <button id="submit-btn" class="bg-green-600 text-white font-bold py-2 px-6 rounded-lg hover:bg-green-700 transition duration-300 shadow-md">제출</button>
+                    </div>
+                    <div id="photo-list" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+                        <!-- Photos will be rendered here -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Stats Page -->
+            <div id="stats-page" class="hidden bg-white rounded-xl shadow-sm p-6">
+                 <div class="flex justify-between items-center mb-6">
+                    <h2 class="text-2xl font-bold">사진 선택 통계</h2>
+                    <div>
+                        <label class="mr-4">
+                            <input type="checkbox" id="toggle-images-view" class="form-checkbox h-5 w-5 text-blue-600 rounded" checked>
+                            <span class="ml-2 text-gray-700">사진과 이름 모두 보기</span>
+                        </label>
+                    </div>
+                </div>
+                <div id="stats-container">
+                    <!-- Stats will be rendered here -->
+                </div>
+            </div>
+
+            <!-- Settings Page -->
+            <div id="settings-page" class="hidden">
+                <div id="admin-login-section" class="text-center p-8 bg-white rounded-xl shadow-sm max-w-md mx-auto">
+                    <h2 class="text-xl font-semibold mb-4">관리자 비밀번호를 입력하세요.</h2>
+                    <input type="password" id="admin-password" class="w-full border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500 p-3 text-lg" placeholder="비밀번호">
+                    <button id="admin-login-btn" class="mt-4 w-full bg-blue-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-blue-700 transition duration-300 shadow-md">로그인</button>
+                </div>
+
+                <div id="admin-panel" class="hidden space-y-8">
+                    <!-- Photo Management -->
+                    <div class="bg-white rounded-xl shadow-sm p-6">
+                        <h3 class="text-xl font-bold mb-4">사진 관리</h3>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                            <input type="text" id="new-photo-name" class="border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500 p-2" placeholder="사진 이름 (선택)">
+                            <input type="text" id="new-photo-url" class="border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500 p-2" placeholder="사진 URL (필수)">
+                        </div>
+                        <button id="add-photo-btn" class="w-full bg-blue-500 text-white font-semibold py-2 px-4 rounded-lg hover:bg-blue-600 transition mb-4">사진 추가</button>
+                        <button id="delete-all-photos-btn" class="w-full bg-red-600 text-white font-semibold py-2 px-4 rounded-lg hover:bg-red-700 transition">모든 사진 삭제</button>
+                        <div id="manage-photo-list" class="mt-4 space-y-2">
+                           <!-- Manageable photo list rendered here -->
+                        </div>
+                    </div>
+
+                    <!-- Submission Data Management -->
+                    <div class="bg-white rounded-xl shadow-sm p-6">
+                        <h3 class="text-xl font-bold mb-4">제출 데이터 관리</h3>
+                        <button id="delete-all-submissions-btn" class="w-full bg-red-600 text-white font-semibold py-2 px-4 rounded-lg hover:bg-red-700 transition mb-4">모든 제출 데이터 삭제</button>
+                        <div id="submission-list" class="mt-4 space-y-2">
+                           <!-- Submission list rendered here -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+        
+        <!-- Loader -->
+        <div id="loader" class="hidden fixed inset-0 bg-gray-900 bg-opacity-50 flex justify-center items-center z-50">
+            <div class="loader"></div>
+        </div>
+
+        <!-- Custom Alert Modal -->
+        <div id="custom-alert" class="hidden fixed inset-0 bg-gray-900 bg-opacity-50 flex justify-center items-center z-50">
+            <div class="bg-white rounded-lg shadow-xl p-6 w-full max-w-sm text-center">
+                <p id="alert-message" class="text-lg mb-4"></p>
+                <button id="alert-ok-btn" class="bg-blue-600 text-white font-bold py-2 px-8 rounded-lg hover:bg-blue-700 transition">확인</button>
+            </div>
+        </div>
+
+        <!-- Custom Confirm Modal -->
+        <div id="custom-confirm" class="hidden fixed inset-0 bg-gray-900 bg-opacity-50 flex justify-center items-center z-50">
+            <div class="bg-white rounded-lg shadow-xl p-6 w-full max-w-sm text-center">
+                <p id="confirm-message" class="text-lg mb-6"></p>
+                <div class="flex justify-center gap-4">
+                    <button id="confirm-cancel-btn" class="bg-gray-300 text-gray-800 font-bold py-2 px-8 rounded-lg hover:bg-gray-400 transition">취소</button>
+                    <button id="confirm-ok-btn" class="bg-red-600 text-white font-bold py-2 px-8 rounded-lg hover:bg-red-700 transition">확인</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        // Firebase SDK imports
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getFirestore, collection, onSnapshot, doc, addDoc, getDocs, writeBatch, query, serverTimestamp, setDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+
+        async function main() {
+            // --- UTILS (Early definition for error handling) ---
+            const showAlert = (message) => {
+                document.getElementById('alert-message').textContent = message;
+                document.getElementById('custom-alert').classList.remove('hidden');
+            };
+            
+            document.getElementById('alert-ok-btn').addEventListener('click', () => {
+                document.getElementById('custom-alert').classList.add('hidden');
+            });
+
+            // --- CONFIGURATION ---
+            const firebaseConfig = {
+                apiKey: "AIzaSyAF2jGbrGMb1Rb4rPQloY1ojS_dBltHl04",
+                authDomain: "choice-image.firebaseapp.com",
+                projectId: "choice-image",
+                storageBucket: "choice-image.appspot.com",
+                messagingSenderId: "923357102352",
+                appId: "1:923357102352:web:ac5e477db4d33c0ae0a595"
+            };
+            const ADMIN_PASSWORD = "admin"; // 실제 프로덕션에서는 안전한 인증 방식을 사용하세요.
+
+            // --- Firebase Initialization ---
+            let app, db, auth;
+            try {
+                app = initializeApp(firebaseConfig);
+                db = getFirestore(app);
+                auth = getAuth(app);
+                await signInAnonymously(auth);
+                console.log("Firebase initialized and user signed in anonymously.");
+            } catch (error) {
+                console.error("Firebase 초기화 오류:", error);
+                if (error.code === 'auth/configuration-not-found') {
+                    showAlert("인증 설정 오류: Firebase 콘솔의 'Authentication > Sign-in method' 탭에서 '익명' 로그인 제공업체를 활성화했는지 확인해주세요.");
+                } else {
+                    showAlert("앱을 초기화하는 데 실패했습니다. Firebase 설정을 확인해주세요.");
+                }
+                return; // Stop execution if Firebase fails
+            }
+            
+            const photosCollection = collection(db, "photos");
+            const submissionsCollection = collection(db, "submissions");
+
+            // --- STATE ---
+            const state = {
+                username: "",
+                selectedPhotos: new Set(),
+                photos: [],
+                submissions: [],
+            };
+            
+            // --- DOM Elements ---
+            const pages = {
+                user: document.getElementById("user-page"),
+                stats: document.getElementById("stats-page"),
+                settings: document.getElementById("settings-page"),
+            };
+            const userSections = {
+                input: document.getElementById("username-input-section"),
+                selection: document.getElementById("photo-selection-section"),
+            };
+            const settingsSections = {
+                login: document.getElementById("admin-login-section"),
+                panel: document.getElementById("admin-panel"),
+            };
+            const photoListEl = document.getElementById("photo-list");
+            const statsContainerEl = document.getElementById("stats-container");
+            const loader = document.getElementById('loader');
+
+            // --- UTILS ---
+            const showConfirm = (message) => {
+                return new Promise((resolve) => {
+                    const confirmModal = document.getElementById('custom-confirm');
+                    const confirmMessage = document.getElementById('confirm-message');
+                    const confirmOkBtn = document.getElementById('confirm-ok-btn');
+                    const confirmCancelBtn = document.getElementById('confirm-cancel-btn');
+
+                    confirmMessage.textContent = message;
+                    confirmModal.classList.remove('hidden');
+
+                    const onOk = () => {
+                        cleanup();
+                        resolve(true);
+                    };
+
+                    const onCancel = () => {
+                        cleanup();
+                        resolve(false);
+                    };
+                    
+                    const cleanup = () => {
+                        confirmModal.classList.add('hidden');
+                        confirmOkBtn.removeEventListener('click', onOk);
+                        confirmCancelBtn.removeEventListener('click', onCancel);
+                    };
+
+                    confirmOkBtn.addEventListener('click', onOk);
+                    confirmCancelBtn.addEventListener('click', onCancel);
+                });
+            };
+
+            const showLoader = (show) => {
+                loader.classList.toggle('hidden', !show);
+            };
+            
+            const handleFirestoreError = (error, action) => {
+                console.error(`Error ${action}: `, error);
+                if (error.code === 'permission-denied') {
+                    showAlert(`권한 오류: Firebase 보안 규칙 때문에 ${action} 작업을 할 수 없습니다. 데이터베이스 읽기/쓰기 권한을 확인해주세요.`);
+                } else {
+                    showAlert(`${action} 중 오류가 발생했습니다.`);
+                }
+            }
+
+            // --- RENDERING ---
+            const renderPhotos = () => {
+                photoListEl.innerHTML = "";
+                state.photos.forEach(photo => {
+                    const isSelected = state.selectedPhotos.has(photo.id);
+                    const photoCard = document.createElement("div");
+                    photoCard.className = `relative cursor-pointer group transition-transform duration-200 ease-in-out ${isSelected ? 'selected-overlay' : ''}`;
+                    photoCard.dataset.id = photo.id;
+                    photoCard.innerHTML = `
+                        <img src="${photo.url}" alt="${photo.name}" class="w-full h-48 object-cover rounded-lg shadow-md" onerror="this.src='https://placehold.co/400x400/e2e8f0/334155?text=Image+Not+Found'">
+                        <div class="absolute bottom-0 left-0 right-0 bg-black bg-opacity-50 text-white p-2 text-center rounded-b-lg">
+                            <p class="font-semibold truncate">${photo.name}</p>
+                        </div>
+                    `;
+                    photoCard.addEventListener("click", () => togglePhotoSelection(photo.id));
+                    photoListEl.appendChild(photoCard);
+                });
+            };
+
+            const renderStats = () => {
+                const photoCounts = {};
+                state.photos.forEach(p => photoCounts[p.id] = { name: p.name, url: p.url, count: 0 });
+
+                state.submissions.forEach(sub => {
+                    if (sub.selectedPhotoIds) {
+                        sub.selectedPhotoIds.forEach(photoId => {
+                            if (photoCounts[photoId]) {
+                                photoCounts[photoId].count++;
+                            }
+                        });
+                    }
+                });
+
+                const sortedStats = Object.entries(photoCounts).sort(([, a], [, b]) => b.count - a.count);
+                
+                statsContainerEl.innerHTML = "";
+                const showImages = document.getElementById('toggle-images-view').checked;
+                
+                if (sortedStats.length === 0) {
+                     statsContainerEl.innerHTML = `<p class="text-gray-500 text-center">표시할 통계 데이터가 없습니다.</p>`;
+                     return;
+                }
+
+                const statsGrid = document.createElement('div');
+                statsGrid.className = showImages 
+                    ? 'grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4' 
+                    : 'space-y-3';
+                
+                sortedStats.forEach(([id, data]) => {
+                    const itemEl = document.createElement('div');
+                    if (showImages) {
+                        itemEl.className = 'bg-gray-100 rounded-lg shadow p-3 text-center';
+                        itemEl.innerHTML = `
+                            <img src="${data.url}" alt="${data.name}" class="w-full h-32 object-cover rounded-md mb-2" onerror="this.src='https://placehold.co/400x400/e2e8f0/334155?text=Image+Not+Found'">
+                            <p class="font-semibold truncate">${data.name}</p>
+                            <p class="text-blue-600 font-bold text-lg">${data.count}회 선택</p>
+                        `;
+                    } else {
+                        itemEl.className = 'flex justify-between items-center bg-gray-100 rounded-lg shadow p-4';
+                        itemEl.innerHTML = `
+                            <p class="font-semibold">${data.name}</p>
+                            <p class="text-blue-600 font-bold text-lg">${data.count}회 선택</p>
+                        `;
+                    }
+                    statsGrid.appendChild(itemEl);
+                });
+                statsContainerEl.appendChild(statsGrid);
+            };
+            
+            const renderAdminPanel = () => {
+                // Render photo management list
+                const managePhotoListEl = document.getElementById('manage-photo-list');
+                managePhotoListEl.innerHTML = '';
+                state.photos.forEach(photo => {
+                    const item = document.createElement('div');
+                    item.className = 'flex items-center justify-between bg-gray-100 p-2 rounded-lg';
+                    item.innerHTML = `
+                        <img src="${photo.url}" class="w-10 h-10 object-cover rounded-md mr-3" onerror="this.src='https://placehold.co/40x40/e2e8f0/334155?text=X'">
+                        <input type="text" value="${photo.name}" data-id="${photo.id}" class="photo-name-input flex-grow border-gray-300 rounded-md p-1">
+                        <button data-id="${photo.id}" class="delete-photo-btn ml-2 bg-red-500 text-white px-3 py-1 rounded-md hover:bg-red-600 text-sm">삭제</button>
+                    `;
+                    managePhotoListEl.appendChild(item);
+                });
+
+                // Render submission list
+                const submissionListEl = document.getElementById('submission-list');
+                submissionListEl.innerHTML = '';
+                state.submissions.forEach(sub => {
+                    const photosStr = sub.selectedPhotoIds ? sub.selectedPhotoIds.map(id => state.photos.find(p => p.id === id)?.name || '삭제된 사진').join(', ') : '선택 없음';
+                    const submittedAtStr = sub.submittedAt ? new Date(sub.submittedAt.toDate()).toLocaleString() : '시간 정보 없음';
+                    const item = document.createElement('div');
+                    item.className = 'flex items-center justify-between bg-gray-100 p-2 rounded-lg';
+                    item.innerHTML = `
+                        <div class="flex-grow">
+                            <p class="font-semibold">${sub.username} <span class="text-gray-500 text-sm font-normal">- ${submittedAtStr}</span></p>
+                            <p class="text-sm text-gray-600 truncate">선택: ${photosStr}</p>
+                        </div>
+                        <button data-id="${sub.id}" class="delete-submission-btn ml-2 bg-red-500 text-white px-3 py-1 rounded-md hover:bg-red-600 text-sm">삭제</button>
+                    `;
+                    submissionListEl.appendChild(item);
+                });
+            };
+
+
+            // --- EVENT HANDLERS & LOGIC ---
+            const togglePhotoSelection = (photoId) => {
+                const card = document.querySelector(`[data-id="${photoId}"]`);
+                if (state.selectedPhotos.has(photoId)) {
+                    state.selectedPhotos.delete(photoId);
+                    card.classList.remove("selected-overlay");
+                } else {
+                    state.selectedPhotos.add(photoId);
+                    card.classList.add("selected-overlay");
+                }
+            };
+
+            const handleStart = () => {
+                let username = document.getElementById("username-input").value.trim();
+                if (!username) {
+                    const now = new Date();
+                    const timestamp = now.toLocaleString('ko-KR', {
+                        year: 'numeric', month: '2-digit', day: '2-digit',
+                        hour: '2-digit', minute: '2-digit', hour12: false
+                    });
+                    username = `방문자 ${timestamp}`;
+                }
+                state.username = username;
+                document.getElementById("display-username").textContent = username;
+                userSections.input.classList.add("hidden");
+                userSections.selection.classList.remove("hidden");
+            };
+
+            const handleSubmit = async () => {
+                if (state.selectedPhotos.size === 0) {
+                    showAlert("하나 이상의 사진을 선택해주세요.");
+                    return;
+                }
+                showLoader(true);
+                try {
+                    await addDoc(submissionsCollection, {
+                        username: state.username,
+                        selectedPhotoIds: Array.from(state.selectedPhotos),
+                        submittedAt: serverTimestamp(),
+                    });
+                    showAlert("제출이 완료되었습니다!");
+                    state.selectedPhotos.clear();
+                    renderPhotos();
+                } catch (error) {
+                    handleFirestoreError(error, "제출");
+                } finally {
+                    showLoader(false);
+                }
+            };
+            
+            const handleAdminLogin = () => {
+                const password = document.getElementById('admin-password').value;
+                if (password === ADMIN_PASSWORD) {
+                    settingsSections.login.classList.add('hidden');
+                    settingsSections.panel.classList.remove('hidden');
+                    renderAdminPanel();
+                } else {
+                    showAlert('비밀번호가 틀렸습니다.');
+                }
+            };
+
+            const handleAddPhoto = async () => {
+                let name = document.getElementById('new-photo-name').value.trim();
+                const url = document.getElementById('new-photo-url').value.trim();
+                
+                if (!url) {
+                    showAlert('사진 URL은 필수로 입력해야 합니다.');
+                    return;
+                }
+
+                if (!name) {
+                    const now = new Date();
+                    name = now.toLocaleString('ko-KR', {
+                        year: 'numeric', month: '2-digit', day: '2-digit',
+                        hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false
+                    });
+                }
+
+                showLoader(true);
+                try {
+                    await addDoc(photosCollection, { name, url });
+                    document.getElementById('new-photo-name').value = '';
+                    document.getElementById('new-photo-url').value = '';
+                    showAlert('사진이 추가되었습니다.');
+                } catch (error) {
+                    handleFirestoreError(error, '사진 추가');
+                } finally {
+                    showLoader(false);
+                }
+            };
+            
+            const handleUpdatePhotoName = async (id, newName) => {
+                if (!newName.trim()) {
+                    showAlert('사진 이름은 비워둘 수 없습니다.');
+                    // To-do: revert input value
+                    return;
+                }
+                try {
+                    const photoRef = doc(db, "photos", id);
+                    await setDoc(photoRef, { name: newName }, { merge: true });
+                } catch(e) {
+                    handleFirestoreError(e, '사진 이름 업데이트');
+                }
+            };
+            
+            const handleDeletePhoto = async (id) => {
+                 try {
+                    await deleteDoc(doc(db, "photos", id));
+                    showAlert('사진이 삭제되었습니다.');
+                } catch (e) {
+                    handleFirestoreError(e, '사진 삭제');
+                }
+            };
+            
+            const handleDeleteAllPhotos = async () => {
+                const confirmed = await showConfirm('정말로 모든 사진을 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.');
+                if (!confirmed) return;
+
+                showLoader(true);
+                try {
+                    const querySnapshot = await getDocs(photosCollection);
+                    const batch = writeBatch(db);
+                    querySnapshot.forEach(doc => batch.delete(doc.ref));
+                    await batch.commit();
+                    showAlert('모든 사진이 삭제되었습니다.');
+                } catch (error) {
+                    handleFirestoreError(error, '모든 사진 삭제');
+                } finally {
+                    showLoader(false);
+                }
+            };
+            
+            const handleDeleteSubmission = async (id) => {
+                try {
+                    await deleteDoc(doc(db, "submissions", id));
+                    showAlert('제출 데이터가 삭제되었습니다.');
+                } catch(e) {
+                    handleFirestoreError(e, '제출 데이터 삭제');
+                }
+            };
+
+            const handleDeleteAllSubmissions = async () => {
+                const confirmed = await showConfirm('정말로 모든 제출 데이터를 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.');
+                if (!confirmed) return;
+                
+                showLoader(true);
+                try {
+                    const querySnapshot = await getDocs(submissionsCollection);
+                    const batch = writeBatch(db);
+                    querySnapshot.forEach(doc => batch.delete(doc.ref));
+                    await batch.commit();
+                    showAlert('모든 제출 데이터가 삭제되었습니다.');
+                } catch (error) {
+                    handleFirestoreError(error, '모든 제출 데이터 삭제');
+                } finally {
+                    showLoader(false);
+                }
+            };
+
+
+            // --- ROUTING ---
+            const navigate = () => {
+                const path = window.location.hash.replace("#", "") || "/";
+                Object.values(pages).forEach(page => page.classList.add("hidden"));
+
+                if (path === "/" || path === "") {
+                    pages.user.classList.remove("hidden");
+                } else if (path === "/stats") {
+                    pages.stats.classList.remove("hidden");
+                    renderStats();
+                } else if (path === "/settings") {
+                    pages.settings.classList.remove("hidden");
+                    // Check if admin is logged in
+                    if(settingsSections.panel.classList.contains('hidden')){
+                        settingsSections.login.classList.remove('hidden');
+                        document.getElementById('admin-password').value = '';
+                    }
+                }
+            };
+
+            // --- ATTACH EVENT LISTENERS ---
+            document.getElementById("start-btn").addEventListener("click", handleStart);
+            document.getElementById("submit-btn").addEventListener("click", handleSubmit);
+            document.getElementById('admin-login-btn').addEventListener('click', handleAdminLogin);
+            document.getElementById('add-photo-btn').addEventListener('click', handleAddPhoto);
+            document.getElementById('delete-all-photos-btn').addEventListener('click', handleDeleteAllPhotos);
+            document.getElementById('delete-all-submissions-btn').addEventListener('click', handleDeleteAllSubmissions);
+            document.getElementById('toggle-images-view').addEventListener('change', renderStats);
+
+            // Delegated events for dynamic elements in admin panel
+            document.getElementById('admin-panel').addEventListener('click', async (e) => {
+                if (e.target.classList.contains('delete-photo-btn')) {
+                    if (await showConfirm('이 사진을 삭제하시겠습니까?')) {
+                         handleDeletePhoto(e.target.dataset.id);
+                    }
+                }
+                if (e.target.classList.contains('delete-submission-btn')) {
+                     if (await showConfirm('이 제출 기록을 삭제하시겠습니까?')) {
+                        handleDeleteSubmission(e.target.dataset.id);
+                     }
+                }
+            });
+
+            document.getElementById('admin-panel').addEventListener('change', (e) => {
+                if (e.target.classList.contains('photo-name-input')) {
+                    handleUpdatePhotoName(e.target.dataset.id, e.target.value);
+                }
+            });
+            
+            window.addEventListener("hashchange", navigate);
+
+
+            // --- INITIAL LOAD & REAL-TIME LISTENERS ---
+            const init = () => {
+                const photoQuery = query(photosCollection);
+                onSnapshot(photoQuery, (snapshot) => {
+                    state.photos = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                    renderPhotos();
+                    if (!pages.stats.classList.contains('hidden')) renderStats();
+                    if (!settingsSections.panel.classList.contains('hidden')) renderAdminPanel();
+                }, (error) => {
+                    handleFirestoreError(error, '사진 목록 실시간 로딩');
+                });
+
+                const submissionQuery = query(submissionsCollection);
+                onSnapshot(submissionQuery, (snapshot) => {
+                    state.submissions = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                     if (!pages.stats.classList.contains('hidden')) renderStats();
+                     if (!settingsSections.panel.classList.contains('hidden')) renderAdminPanel();
+                }, (error) => {
+                    handleFirestoreError(error, '제출 데이터 실시간 로딩');
+                });
+                
+                navigate(); // Initial page load
+            };
+
+            init();
+        }
+
+        main().catch(console.error);
+    </script>
+</body>
+</html>
+
