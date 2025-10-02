@@ -1,0 +1,500 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>소수 찾기 게임</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Noto Sans KR', sans-serif;
+        }
+        .card {
+            background-color: #ffffff; /* bg-white */
+            border: 2px solid #e5e7eb; /* border-gray-200 */
+            transition: all 0.2s ease-in-out;
+            user-select: none;
+        }
+        .card:hover {
+            transform: translateY(-4px);
+            border-color: #4f46e5; /* indigo-600 */
+        }
+        .card.selected {
+            background-color: #4f46e5; /* bg-indigo-600 */
+            color: #ffffff; /* text-white */
+            transform: translateY(-2px) scale(1.02);
+            box-shadow: 0 0 15px rgba(79, 70, 229, 0.5);
+            border-color: #6366f1;
+        }
+        .modal-backdrop {
+            background-color: rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(5px);
+        }
+        .btn {
+            transition: all 0.2s ease;
+        }
+        .btn:hover {
+            transform: scale(1.05);
+        }
+        .fade-in {
+            animation: fadeIn 0.5s ease-in-out forwards;
+        }
+        .fade-out {
+            animation: fadeOut 0.5s ease-in-out forwards;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: scale(0.95); }
+            to { opacity: 1; transform: scale(1); }
+        }
+        @keyframes fadeOut {
+            from { opacity: 1; transform: scale(1); }
+            to { opacity: 0; transform: scale(0.95); }
+        }
+
+        /* 정답/오답 표시 스타일 */
+        .card.correct-prime {
+            background-color: #dcfce7; /* green-100 */
+            border-color: #22c55e; /* green-500 */
+            box-shadow: 0 0 10px #22c55e;
+            color: #166534; /* green-800 */
+            cursor: default !important;
+        }
+        .card.wrong-selection {
+            background-color: #fee2e2; /* red-100 */
+            border-color: #ef4444; /* red-500 */
+            box-shadow: 0 0 10px #ef4444;
+            opacity: 0.8;
+        }
+    </style>
+</head>
+<body class="bg-gray-100 text-gray-800 flex items-center justify-center min-h-screen p-4">
+
+    <div id="app-container" class="w-full max-w-2xl mx-auto">
+
+        <!-- 시작 화면 -->
+        <div id="start-screen" class="text-center p-8 bg-white rounded-2xl shadow-xl fade-in">
+            <h1 class="text-4xl font-bold text-indigo-600 mb-4">소수 찾기 게임</h1>
+            <div class="text-left mx-auto max-w-md space-y-3 text-gray-600 mb-8">
+                <p><strong class="text-indigo-600">게임 방식:</strong></p>
+                <p>1. '시작하기'를 누르면 게임이 시작됩니다.</p>
+                <p>2. 화면에 나타난 자연수 중에서 소수를 찾아 클릭하세요.</p>
+                <p>3. 소수를 1개 이상 찾았다면 '정답 확인'을 누를 수 있습니다.</p>
+                <p>4. 선택한 수가 <strong class="text-gray-900">모두 소수</strong>면, 찾은 개수만큼 <strong class="text-yellow-500">보너스 시간</strong>을 얻습니다.</p>
+                <p>5. 만약 선택한 수에 <strong class="text-red-500">합성수</strong>가 섞여있으면 즉시 게임오버 됩니다.</p>
+                <p>6. 제한 시간 안에 모든 소수를 찾아내면 최종 승리합니다.</p>
+            </div>
+            <div class="flex flex-col items-center space-y-4">
+                <button id="open-settings-btn" class="bg-gray-200 hover:bg-gray-300 text-gray-700 font-bold py-3 px-8 rounded-full text-lg btn shadow-lg w-full max-w-xs">
+                    ⚙️ 게임 설정
+                </button>
+                <button id="start-btn" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-8 rounded-full text-lg btn shadow-lg w-full max-w-xs">
+                    시작하기
+                </button>
+            </div>
+        </div>
+
+        <!-- 게임 화면 -->
+        <div id="game-screen" class="hidden w-full">
+            <header class="flex justify-between items-center mb-6 p-4 bg-white rounded-xl shadow-lg">
+                <div class="flex items-center space-x-6">
+                    <div>
+                        <span class="text-lg">남은 시간: <strong id="timer" class="text-2xl text-yellow-500">60</strong>초</span>
+                    </div>
+                    <div>
+                         <span class="text-lg">남은 소수: <strong id="primes-to-find" class="text-2xl text-green-500">2개</strong></span>
+                    </div>
+                </div>
+                <button id="back-to-start-btn" class="bg-gray-200 hover:bg-gray-300 text-gray-700 font-bold py-2 px-4 rounded-lg btn">
+                    처음으로
+                </button>
+            </header>
+            <main id="number-grid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 mb-6">
+                <!-- 숫자 카드가 여기에 동적으로 추가됩니다. -->
+            </main>
+            <footer class="text-center">
+                <button id="check-btn" class="bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-8 rounded-full text-lg btn shadow-lg">
+                    정답 확인
+                </button>
+                <div id="result-container" class="hidden mt-4 space-y-4">
+                    <p id="result-message-on-screen" class="text-lg font-semibold"></p>
+                    <button id="restart-btn" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-8 rounded-full text-lg btn">
+                        다시하기
+                    </button>
+                </div>
+            </footer>
+        </div>
+    </div>
+    
+    <!-- 설정 모달 -->
+    <div id="settings-modal" class="fixed inset-0 flex items-center justify-center hidden modal-backdrop">
+        <div class="bg-white p-8 rounded-2xl shadow-2xl w-full max-w-md m-4 fade-in">
+            <h2 class="text-2xl font-bold mb-6 text-center">게임 설정</h2>
+            <div class="space-y-4">
+                <div>
+                    <label for="n-digits" class="block mb-1 text-gray-500">자연수 자릿수 (n)</label>
+                    <input type="number" id="n-digits" min="2" max="8" class="w-full p-2 bg-gray-200 text-gray-800 rounded border border-gray-300 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                </div>
+                <div>
+                    <label for="m-numbers" class="block mb-1 text-gray-500">총 숫자 개수 (m)</label>
+                    <input type="number" id="m-numbers" min="2" max="20" class="w-full p-2 bg-gray-200 text-gray-800 rounded border border-gray-300 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                </div>
+                <div>
+                    <label for="p-primes" class="block mb-1 text-gray-500">소수 개수 (p)</label>
+                    <input type="number" id="p-primes" min="1" max="19" class="w-full p-2 bg-gray-200 text-gray-800 rounded border border-gray-300 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                </div>
+                <div>
+                    <label for="t-time" class="block mb-1 text-gray-500">제한 시간(초, t)</label>
+                    <input type="number" id="t-time" min="10" max="300" class="w-full p-2 bg-gray-200 text-gray-800 rounded border border-gray-300 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                </div>
+                <div>
+                    <label for="bonus-time" class="block mb-1 text-gray-500">소수 발견 시 추가 시간(초)</label>
+                    <input type="number" id="bonus-time" min="0" max="120" class="w-full p-2 bg-gray-200 text-gray-800 rounded border border-gray-300 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                </div>
+            </div>
+            <div class="mt-8 flex justify-end space-x-4">
+                <button id="close-settings-btn" class="bg-gray-200 hover:bg-gray-300 text-gray-700 font-bold py-2 px-6 rounded-lg btn">닫기</button>
+                <button id="save-settings-btn" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-6 rounded-lg btn">저장</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const startScreen = document.getElementById('start-screen');
+        const gameScreen = document.getElementById('game-screen');
+        const numberGrid = document.getElementById('number-grid');
+        const timerEl = document.getElementById('timer');
+        const primesToFindEl = document.getElementById('primes-to-find');
+        
+        const startBtn = document.getElementById('start-btn');
+        const checkBtn = document.getElementById('check-btn');
+        const openSettingsBtn = document.getElementById('open-settings-btn');
+        const saveSettingsBtn = document.getElementById('save-settings-btn');
+        const closeSettingsBtn = document.getElementById('close-settings-btn');
+        const backToStartBtn = document.getElementById('back-to-start-btn');
+        const restartBtn = document.getElementById('restart-btn');
+
+        const settingsModal = document.getElementById('settings-modal');
+        
+        const resultContainer = document.getElementById('result-container');
+        const resultMessageOnScreen = document.getElementById('result-message-on-screen');
+
+        const nDigitsInput = document.getElementById('n-digits');
+        const mNumbersInput = document.getElementById('m-numbers');
+        const pPrimesInput = document.getElementById('p-primes');
+        const tTimeInput = document.getElementById('t-time');
+        const bonusTimeInput = document.getElementById('bonus-time');
+
+        let settings = {
+            n: 4, 
+            m: 8, 
+            p: 2, 
+            t: 60,
+            bonusTime: 30
+        };
+
+        let gameState = {
+            numbers: [],
+            primeNumbers: [],
+            selectedNumbers: new Set(),
+            foundPrimes: new Set(),
+            timeLeft: 0,
+            timerId: null,
+            gameActive: false
+        };
+
+        function isPrime(num) {
+            if (num <= 1) return false;
+            if (num <= 3) return true;
+            if (num % 2 === 0 || num % 3 === 0) return false;
+            let i = 5;
+            while (i * i <= num) {
+                if (num % i === 0 || num % (i + 2) === 0) return false;
+                i += 6;
+            }
+            return true;
+        }
+
+        function getPrimeFactorization(num) {
+            const factorCounts = new Map();
+            let d = 2;
+            let n = num;
+            while (n > 1) {
+                while (n % d === 0) {
+                    factorCounts.set(d, (factorCounts.get(d) || 0) + 1);
+                    n /= d;
+                }
+                d++;
+                if (d * d > n) {
+                    if (n > 1) factorCounts.set(n, (factorCounts.get(n) || 0) + 1);
+                    break;
+                }
+            }
+
+            const parts = [];
+            const exponents = {
+                '0': '⁰', '1': '¹', '2': '²', '3': '³', '4': '⁴',
+                '5': '⁵', '6': '⁶', '7': '⁷', '8': '⁸', '9': '⁹'
+            };
+
+            for (const [factor, count] of factorCounts.entries()) {
+                if (count === 1) {
+                    parts.push(factor);
+                } else {
+                    const exponentStr = String(count).split('').map(digit => exponents[digit]).join('');
+                    parts.push(`${factor}${exponentStr}`);
+                }
+            }
+            return parts.join(' × ');
+        }
+
+        function generateRandomNdigitNumber(n) {
+            const min = Math.pow(10, n - 1);
+            const max = Math.pow(10, n) - 1;
+            return Math.floor(Math.random() * (max - min + 1)) + min;
+        }
+
+        async function generateGameNumbers() {
+            const primes = new Set();
+            const composites = new Set();
+            
+            while (primes.size < settings.p) {
+                const num = generateRandomNdigitNumber(settings.n);
+                if (isPrime(num)) primes.add(num);
+            }
+            
+            while (composites.size < settings.m - settings.p) {
+                const num = generateRandomNdigitNumber(settings.n);
+                if (!isPrime(num) && !primes.has(num)) composites.add(num);
+            }
+
+            const allNumbers = [...primes, ...composites];
+            allNumbers.sort(() => Math.random() - 0.5);
+
+            gameState.numbers = allNumbers;
+            gameState.primeNumbers = [...primes];
+        }
+
+        function renderNumberGrid() {
+            numberGrid.innerHTML = '';
+            gameState.numbers.forEach(num => {
+                const card = document.createElement('div');
+                card.textContent = num;
+                card.dataset.number = num;
+                card.className = 'card flex flex-col items-center justify-center p-4 rounded-lg text-xl sm:text-2xl font-bold cursor-pointer min-h-[80px]';
+                card.addEventListener('click', handleNumberClick);
+                numberGrid.appendChild(card);
+            });
+        }
+        
+        function updateTimerDisplay() {
+            timerEl.textContent = gameState.timeLeft;
+        }
+        
+        function switchScreen(screenToShow, screenToHide) {
+             if (screenToHide) {
+                screenToHide.classList.add('fade-out');
+                setTimeout(() => {
+                    screenToHide.classList.add('hidden');
+                    screenToHide.classList.remove('fade-out');
+                }, 500);
+            }
+            if (screenToShow) {
+                setTimeout(() => {
+                    screenToShow.classList.remove('hidden');
+                    screenToShow.classList.add('fade-in');
+                }, screenToHide ? 500 : 0);
+            }
+        }
+
+        async function startGame() {
+            switchScreen(gameScreen, startScreen);
+            await restartGame(true);
+        }
+
+        async function restartGame(isInitialStart = false) {
+            if (!isInitialStart) {
+                resultContainer.classList.add('hidden');
+            }
+            checkBtn.classList.remove('hidden');
+            
+            if(gameState.timerId) clearInterval(gameState.timerId);
+
+            gameState.gameActive = true;
+            gameState.selectedNumbers.clear();
+            gameState.foundPrimes.clear();
+            gameState.timeLeft = settings.t;
+            updateTimerDisplay();
+            primesToFindEl.textContent = `${settings.p}개`;
+
+            await generateGameNumbers();
+            renderNumberGrid();
+
+            gameState.timerId = setInterval(() => {
+                gameState.timeLeft--;
+                updateTimerDisplay();
+                if (gameState.timeLeft <= 0) {
+                    endGame(false, "시간 초과! 정답은 초록색 숫자입니다.");
+                }
+            }, 1000);
+        }
+        
+        function endGame(isWin, message) {
+            clearInterval(gameState.timerId);
+            gameState.gameActive = false;
+
+            revealAnswers(isWin);
+            resultMessageOnScreen.textContent = message;
+            resultContainer.classList.remove('hidden');
+            checkBtn.classList.add('hidden');
+        }
+
+        function revealAnswers(isWin) {
+            const cards = numberGrid.querySelectorAll('.card');
+            cards.forEach(card => {
+                const num = parseInt(card.dataset.number);
+                const isNumPrime = gameState.primeNumbers.includes(num);
+                
+                card.removeEventListener('click', handleNumberClick);
+                card.style.cursor = 'default';
+                card.classList.remove('selected');
+
+                if (isNumPrime) {
+                    card.classList.add('correct-prime');
+                } else {
+                    const factorization = getPrimeFactorization(num);
+                    const factorizationEl = document.createElement('div');
+                    factorizationEl.textContent = factorization;
+                    factorizationEl.className = 'text-xs text-gray-500 mt-1 font-normal';
+                    card.appendChild(factorizationEl);
+                }
+                
+                if (!isWin && gameState.selectedNumbers.has(card.dataset.number) && !isNumPrime) {
+                    card.classList.add('wrong-selection');
+                }
+            });
+        }
+        
+        function checkAnswer() {
+            if (!gameState.gameActive) return;
+
+            const currentSelection = Array.from(gameState.selectedNumbers);
+            if (currentSelection.length === 0) return;
+
+            let hasComposite = false;
+            for (const numStr of currentSelection) {
+                if (!gameState.primeNumbers.includes(Number(numStr))) {
+                    hasComposite = true;
+                    break;
+                }
+            }
+
+            if (hasComposite) {
+                endGame(false, "😭 실패! 합성수를 선택했습니다.");
+                return;
+            }
+
+            const newlyFoundCount = currentSelection.length;
+            gameState.timeLeft += newlyFoundCount * settings.bonusTime;
+            updateTimerDisplay();
+
+            currentSelection.forEach(numStr => {
+                const num = Number(numStr);
+                gameState.foundPrimes.add(num);
+                const card = numberGrid.querySelector(`[data-number="${numStr}"]`);
+                if (card) {
+                    card.classList.remove('selected');
+                    card.classList.add('correct-prime');
+                    card.removeEventListener('click', handleNumberClick);
+                }
+            });
+
+            gameState.selectedNumbers.clear();
+
+            const remainingPrimes = settings.p - gameState.foundPrimes.size;
+            primesToFindEl.textContent = `${remainingPrimes}개`;
+
+            if (remainingPrimes === 0) {
+                endGame(true, "🎉 최종 승리! 모든 소수를 찾았습니다!");
+            }
+        }
+
+        function handleNumberClick(event) {
+            if (!gameState.gameActive) return;
+            const card = event.target.closest('.card');
+            if (!card || card.classList.contains('correct-prime')) return;
+            
+            const num = card.dataset.number;
+
+            card.classList.toggle('selected');
+            if (gameState.selectedNumbers.has(num)) {
+                gameState.selectedNumbers.delete(num);
+            } else {
+                gameState.selectedNumbers.add(num);
+            }
+        }
+        
+        function showModal(modal) {
+            modal.classList.remove('hidden');
+        }
+        
+        function hideModal(modal) {
+            modal.querySelector('.fade-in')?.classList.add('fade-out');
+            setTimeout(() => {
+                modal.classList.add('hidden');
+                modal.querySelector('.fade-out')?.classList.remove('fade-out');
+            }, 500);
+        }
+
+        function loadSettingsToUI() {
+            nDigitsInput.value = settings.n;
+            mNumbersInput.value = settings.m;
+            pPrimesInput.value = settings.p;
+            tTimeInput.value = settings.t;
+            bonusTimeInput.value = settings.bonusTime;
+        }
+
+        function saveSettings() {
+            const n = parseInt(nDigitsInput.value);
+            const m = parseInt(mNumbersInput.value);
+            const p = parseInt(pPrimesInput.value);
+            const t = parseInt(tTimeInput.value);
+            const bonusTime = parseInt(bonusTimeInput.value);
+
+            if (p >= m) {
+                alert("소수의 개수(p)는 총 숫자 개수(m)보다 작아야 합니다.");
+                pPrimesInput.focus();
+                return;
+            }
+            settings = { n, m, p, t, bonusTime };
+            hideModal(settingsModal);
+        }
+
+        startBtn.addEventListener('click', startGame);
+        checkBtn.addEventListener('click', checkAnswer);
+        restartBtn.addEventListener('click', () => restartGame(false));
+        
+        openSettingsBtn.addEventListener('click', () => {
+            loadSettingsToUI();
+            showModal(settingsModal);
+        });
+        
+        closeSettingsBtn.addEventListener('click', () => hideModal(settingsModal));
+        saveSettingsBtn.addEventListener('click', saveSettings);
+        
+        backToStartBtn.addEventListener('click', () => {
+            if (gameState.gameActive) {
+                clearInterval(gameState.timerId);
+                gameState.gameActive = false;
+            }
+            switchScreen(startScreen, gameScreen);
+        });
+        
+    </script>
+</body>
+</html>
+
+
+
