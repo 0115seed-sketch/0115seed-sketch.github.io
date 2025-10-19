@@ -1,0 +1,446 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI 타임라인</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Noto Sans KR', sans-serif;
+        }
+        .timeline-line {
+            position: absolute;
+            left: 50%;
+            top: 0;
+            bottom: 0;
+            width: 4px;
+            background: linear-gradient(to bottom, #3b82f6, #8b5cf6);
+            transform: translateX(-50%);
+        }
+        .timeline-item-left {
+            margin-right: auto;
+            padding-right: 2.5rem;
+        }
+        .timeline-item-right {
+            margin-left: auto;
+            padding-left: 2.5rem;
+        }
+        .timeline-dot {
+            position: absolute;
+            top: 1rem;
+            width: 1rem;
+            height: 1rem;
+            background: white;
+            border: 4px solid #3b82f6;
+            border-radius: 50%;
+            z-index: 10;
+        }
+        .timeline-item-left .timeline-dot {
+            right: -0.5rem;
+        }
+        .timeline-item-right .timeline-dot {
+            left: -0.5rem;
+        }
+        @media (max-width: 768px) {
+            .timeline-line {
+                left: 1rem;
+            }
+            .timeline-item-left,
+            .timeline-item-right {
+                margin-left: 0;
+                margin-right: 0;
+                padding-left: 2.5rem;
+                padding-right: 0;
+            }
+            .timeline-item-left .timeline-dot,
+            .timeline-item-right .timeline-dot {
+                left: 0.5rem;
+                right: auto;
+            }
+        }
+    </style>
+</head>
+<body class="bg-gray-100 text-gray-800">
+
+    <div id="app" class="container mx-auto p-4 sm:p-6 lg:p-8 max-w-4xl">
+
+        <!-- 메인 페이지: 타임라인 보기 -->
+        <div id="main-page">
+            <header class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
+                <div>
+                    <h1 class="text-3xl font-bold text-gray-700">AI 타임라인</h1>
+                    <p class="text-gray-500 text-sm mt-1">AI 모델의 발전사를 한눈에 확인하세요</p>
+                </div>
+                <div class="flex gap-2">
+                    <button id="add-btn" class="bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-4 rounded-lg shadow-md transition-transform transform hover:scale-105">
+                        ➕ 추가
+                    </button>
+                    <button id="settings-btn" class="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded-lg shadow-md transition-transform transform hover:scale-105">
+                        ⚙️ 관리
+                    </button>
+                </div>
+            </header>
+            <main id="timeline-container" class="relative">
+                <div class="timeline-line"></div>
+                <!-- 타임라인 아이템이 여기에 추가됩니다 -->
+            </main>
+        </div>
+
+        <!-- 추가/수정 페이지 -->
+        <div id="edit-page" class="hidden">
+            <header class="flex items-center mb-6">
+                <button id="back-btn" class="bg-gray-500 hover:bg-gray-600 text-white font-bold py-2 px-4 rounded-lg shadow-md transition-transform transform hover:scale-105 mr-4">
+                    ← 돌아가기
+                </button>
+                <h1 class="text-3xl font-bold text-gray-700" id="edit-title">이벤트 추가</h1>
+            </header>
+            <main class="bg-white p-6 sm:p-8 rounded-2xl shadow-lg">
+                <div class="space-y-4">
+                    <div>
+                        <label for="event-date" class="block text-lg font-medium text-gray-700 mb-2">날짜 *</label>
+                        <input type="text" id="event-date" placeholder="예: 2024.03" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition">
+                    </div>
+                    <div>
+                        <label for="event-title" class="block text-lg font-medium text-gray-700 mb-2">제목 *</label>
+                        <input type="text" id="event-title" placeholder="예: GPT-4 출시" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition">
+                    </div>
+                    <div>
+                        <label for="event-description" class="block text-lg font-medium text-gray-700 mb-2">설명</label>
+                        <textarea id="event-description" rows="4" placeholder="이벤트에 대한 자세한 설명을 입력하세요" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition resize-y"></textarea>
+                    </div>
+                    <div>
+                        <label for="event-category" class="block text-lg font-medium text-gray-700 mb-2">카테고리</label>
+                        <select id="event-category" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition">
+                            <option value="LLM">대규모 언어 모델 (LLM)</option>
+                            <option value="Vision">비전/이미지</option>
+                            <option value="Audio">오디오/음성</option>
+                            <option value="Video">비디오</option>
+                            <option value="Multimodal">멀티모달</option>
+                            <option value="Other">기타</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="mt-8 flex gap-3">
+                    <button id="save-event-btn" class="flex-1 bg-blue-500 hover:bg-blue-600 text-white font-bold py-3 px-6 rounded-lg shadow-md transition-transform transform hover:scale-105">
+                        💾 저장하기
+                    </button>
+                    <button id="cancel-btn" class="bg-gray-400 hover:bg-gray-500 text-white font-bold py-3 px-6 rounded-lg shadow-md transition-transform transform hover:scale-105">
+                        취소
+                    </button>
+                </div>
+            </main>
+        </div>
+
+        <!-- 관리 페이지 -->
+        <div id="settings-page" class="hidden">
+            <header class="flex items-center mb-6">
+                <button id="settings-back-btn" class="bg-gray-500 hover:bg-gray-600 text-white font-bold py-2 px-4 rounded-lg shadow-md transition-transform transform hover:scale-105 mr-4">
+                    ← 돌아가기
+                </button>
+                <h1 class="text-3xl font-bold text-gray-700">타임라인 관리</h1>
+            </header>
+            <main class="bg-white p-6 sm:p-8 rounded-2xl shadow-lg">
+                <div id="manage-list" class="space-y-3">
+                    <!-- 관리 목록이 여기에 추가됩니다 -->
+                </div>
+                <div class="mt-6 text-center">
+                    <button id="reset-all-btn" class="bg-red-500 hover:bg-red-600 text-white font-bold py-2 px-6 rounded-lg shadow-md transition-transform transform hover:scale-105">
+                        🗑️ 전체 초기화
+                    </button>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const mainPage = document.getElementById('main-page');
+            const editPage = document.getElementById('edit-page');
+            const settingsPage = document.getElementById('settings-page');
+            const timelineContainer = document.getElementById('timeline-container');
+
+            const addBtn = document.getElementById('add-btn');
+            const settingsBtn = document.getElementById('settings-btn');
+            const backBtn = document.getElementById('back-btn');
+            const settingsBackBtn = document.getElementById('settings-back-btn');
+            const saveEventBtn = document.getElementById('save-event-btn');
+            const cancelBtn = document.getElementById('cancel-btn');
+            const resetAllBtn = document.getElementById('reset-all-btn');
+
+            // 기본 데이터
+            const defaultEvents = [
+                {
+                    id: Date.now() + 1,
+                    date: '2022.11',
+                    title: 'ChatGPT 출시',
+                    description: 'OpenAI가 대화형 AI인 ChatGPT를 공개하며 AI 대중화의 시작',
+                    category: 'LLM'
+                },
+                {
+                    id: Date.now() + 2,
+                    date: '2023.03',
+                    title: 'GPT-4 발표',
+                    description: '멀티모달 능력을 갖춘 GPT-4가 공개되어 AI 성능의 획기적 발전',
+                    category: 'Multimodal'
+                },
+                {
+                    id: Date.now() + 3,
+                    date: '2023.07',
+                    title: 'Claude 2 출시',
+                    description: 'Anthropic이 안전성에 중점을 둔 Claude 2를 발표',
+                    category: 'LLM'
+                },
+                {
+                    id: Date.now() + 4,
+                    date: '2024.02',
+                    title: 'Gemini 1.5 Pro',
+                    description: 'Google이 200만 토큰 컨텍스트 윈도우를 가진 Gemini 1.5 Pro 공개',
+                    category: 'Multimodal'
+                },
+                {
+                    id: Date.now() + 5,
+                    date: '2024.05',
+                    title: 'GPT-4o 발표',
+                    description: 'OpenAI가 음성, 비전, 텍스트를 실시간으로 처리하는 GPT-4o 공개',
+                    category: 'Multimodal'
+                },
+                {
+                    id: Date.now() + 6,
+                    date: '2025.01',
+                    title: 'Claude 3.5 Sonnet',
+                    description: 'Anthropic의 최신 모델로 코딩과 추론 능력이 크게 향상',
+                    category: 'LLM'
+                }
+            ];
+
+            let events = [];
+            let editingId = null;
+
+            // 카테고리 색상
+            const categoryColors = {
+                'LLM': 'bg-blue-100 text-blue-800 border-blue-300',
+                'Vision': 'bg-purple-100 text-purple-800 border-purple-300',
+                'Audio': 'bg-green-100 text-green-800 border-green-300',
+                'Video': 'bg-pink-100 text-pink-800 border-pink-300',
+                'Multimodal': 'bg-indigo-100 text-indigo-800 border-indigo-300',
+                'Other': 'bg-gray-100 text-gray-800 border-gray-300'
+            };
+
+            // --- 상태 관리 ---
+            function loadEvents() {
+                const savedEvents = localStorage.getItem('aiTimelineEvents');
+                events = savedEvents ? JSON.parse(savedEvents) : [...defaultEvents];
+                // 날짜순 정렬 (최신순)
+                events.sort((a, b) => {
+                    const dateA = a.date.replace(/\./g, '');
+                    const dateB = b.date.replace(/\./g, '');
+                    return dateB.localeCompare(dateA);
+                });
+            }
+
+            function saveEvents() {
+                localStorage.setItem('aiTimelineEvents', JSON.stringify(events));
+            }
+
+            // --- 렌더링 ---
+            function renderTimeline() {
+                const line = timelineContainer.querySelector('.timeline-line');
+                timelineContainer.innerHTML = '';
+                timelineContainer.appendChild(line);
+
+                if (events.length === 0) {
+                    const emptyMessage = document.createElement('div');
+                    emptyMessage.className = 'text-center py-12 text-gray-500';
+                    emptyMessage.innerHTML = '<p class="text-xl">타임라인이 비어있습니다</p><p class="mt-2">새 이벤트를 추가해보세요!</p>';
+                    timelineContainer.appendChild(emptyMessage);
+                    return;
+                }
+
+                events.forEach((event, index) => {
+                    const isLeft = index % 2 === 0;
+                    const item = document.createElement('div');
+                    item.className = `relative mb-8 w-full md:w-1/2 ${isLeft ? 'timeline-item-left' : 'timeline-item-right'}`;
+                    
+                    const categoryColor = categoryColors[event.category] || categoryColors['Other'];
+                    
+                    item.innerHTML = `
+                        <div class="timeline-dot"></div>
+                        <div class="bg-white p-4 rounded-lg shadow-md hover:shadow-lg transition-shadow cursor-pointer" onclick="viewEvent(${event.id})">
+                            <div class="flex items-center justify-between mb-2">
+                                <span class="text-blue-600 font-bold">${event.date}</span>
+                                <span class="text-xs px-2 py-1 rounded-full border ${categoryColor}">${event.category}</span>
+                            </div>
+                            <h3 class="text-xl font-bold text-gray-800 mb-2">${event.title}</h3>
+                            ${event.description ? `<p class="text-gray-600 text-sm">${event.description}</p>` : ''}
+                        </div>
+                    `;
+                    
+                    timelineContainer.appendChild(item);
+                });
+            }
+
+            function renderManageList() {
+                const manageList = document.getElementById('manage-list');
+                manageList.innerHTML = '';
+
+                if (events.length === 0) {
+                    manageList.innerHTML = '<p class="text-center text-gray-500 py-8">관리할 이벤트가 없습니다</p>';
+                    return;
+                }
+
+                events.forEach(event => {
+                    const item = document.createElement('div');
+                    item.className = 'flex items-center justify-between p-4 bg-gray-50 rounded-lg border border-gray-200';
+                    
+                    const categoryColor = categoryColors[event.category] || categoryColors['Other'];
+                    
+                    item.innerHTML = `
+                        <div class="flex-1">
+                            <div class="flex items-center gap-2 mb-1">
+                                <span class="text-sm font-bold text-gray-600">${event.date}</span>
+                                <span class="text-xs px-2 py-0.5 rounded-full border ${categoryColor}">${event.category}</span>
+                            </div>
+                            <h4 class="font-bold text-gray-800">${event.title}</h4>
+                        </div>
+                        <div class="flex gap-2">
+                            <button onclick="editEvent(${event.id})" class="bg-blue-500 hover:bg-blue-600 text-white px-3 py-1 rounded text-sm font-medium transition">수정</button>
+                            <button onclick="deleteEvent(${event.id})" class="bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded text-sm font-medium transition">삭제</button>
+                        </div>
+                    `;
+                    
+                    manageList.appendChild(item);
+                });
+            }
+
+            // --- 이벤트 관리 ---
+            window.viewEvent = function(id) {
+                const event = events.find(e => e.id === id);
+                if (!event) return;
+
+                // 간단한 상세 보기 (수정으로 이동)
+                editEvent(id);
+            };
+
+            window.editEvent = function(id) {
+                const event = events.find(e => e.id === id);
+                if (!event) return;
+
+                editingId = id;
+                document.getElementById('edit-title').textContent = '이벤트 수정';
+                document.getElementById('event-date').value = event.date;
+                document.getElementById('event-title').value = event.title;
+                document.getElementById('event-description').value = event.description || '';
+                document.getElementById('event-category').value = event.category;
+
+                settingsPage.classList.add('hidden');
+                mainPage.classList.add('hidden');
+                editPage.classList.remove('hidden');
+            };
+
+            window.deleteEvent = function(id) {
+                if (confirm('이 이벤트를 삭제하시겠습니까?')) {
+                    events = events.filter(e => e.id !== id);
+                    saveEvents();
+                    renderTimeline();
+                    renderManageList();
+                }
+            };
+
+            // --- 페이지 전환 ---
+            addBtn.addEventListener('click', () => {
+                editingId = null;
+                document.getElementById('edit-title').textContent = '이벤트 추가';
+                document.getElementById('event-date').value = '';
+                document.getElementById('event-title').value = '';
+                document.getElementById('event-description').value = '';
+                document.getElementById('event-category').value = 'LLM';
+
+                mainPage.classList.add('hidden');
+                editPage.classList.remove('hidden');
+            });
+
+            settingsBtn.addEventListener('click', () => {
+                renderManageList();
+                mainPage.classList.add('hidden');
+                settingsPage.classList.remove('hidden');
+            });
+
+            backBtn.addEventListener('click', () => {
+                editPage.classList.add('hidden');
+                mainPage.classList.remove('hidden');
+                renderTimeline();
+            });
+
+            cancelBtn.addEventListener('click', () => {
+                editPage.classList.add('hidden');
+                mainPage.classList.remove('hidden');
+            });
+
+            settingsBackBtn.addEventListener('click', () => {
+                settingsPage.classList.add('hidden');
+                mainPage.classList.remove('hidden');
+            });
+
+            // --- 저장 ---
+            saveEventBtn.addEventListener('click', () => {
+                const date = document.getElementById('event-date').value.trim();
+                const title = document.getElementById('event-title').value.trim();
+                const description = document.getElementById('event-description').value.trim();
+                const category = document.getElementById('event-category').value;
+
+                if (!date || !title) {
+                    alert('날짜와 제목은 필수 입력 항목입니다.');
+                    return;
+                }
+
+                if (editingId) {
+                    // 수정
+                    const event = events.find(e => e.id === editingId);
+                    if (event) {
+                        event.date = date;
+                        event.title = title;
+                        event.description = description;
+                        event.category = category;
+                    }
+                } else {
+                    // 추가
+                    events.push({
+                        id: Date.now(),
+                        date,
+                        title,
+                        description,
+                        category
+                    });
+                }
+
+                saveEvents();
+                renderTimeline();
+
+                editPage.classList.add('hidden');
+                mainPage.classList.remove('hidden');
+            });
+
+            // --- 전체 초기화 ---
+            resetAllBtn.addEventListener('click', () => {
+                if (confirm('모든 이벤트를 삭제하고 기본 데이터로 초기화하시겠습니까?\n이 작업은 되돌릴 수 없습니다.')) {
+                    events = [...defaultEvents];
+                    saveEvents();
+                    renderTimeline();
+                    renderManageList();
+                }
+            });
+
+            // --- 초기화 ---
+            function init() {
+                loadEvents();
+                renderTimeline();
+            }
+
+            init();
+        });
+    </script>
+
+</body>
+</html>
