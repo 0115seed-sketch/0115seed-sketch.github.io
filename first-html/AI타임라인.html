@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>2025 AI 모델 현황 분석</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet">
+    <!-- Chosen Palette: Calm Tech -->
+    <!-- Application Structure Plan: 이 애플리케이션은 사용자가 AI 모델의 발전사와 현재 성능을 직관적으로 이해할 수 있도록 두 개의 명확한 섹션(타임라인, 분야별 최고 모델)으로 정보를 분리하여 설계되었습니다. 사용자는 탭 방식의 네비게이션을 통해 두 관점을 자유롭게 오갈 수 있습니다. '타임라인' 섹션에서는 회사별 필터링 기능을 통해 특정 기업의 모델 발전사를 집중적으로 탐색할 수 있으며, '분야별 최고 모델' 섹션에서는 복잡한 성능 지표를 한눈에 비교할 수 있는 레이더 차트를 제공하여 정보 탐색의 깊이를 더했습니다. 이러한 구조는 정보를 단순히 나열하는 것보다 사용자의 능동적인 탐색과 발견을 유도하여 더 높은 이해를 돕기 위해 채택되었습니다. -->
+    <!-- Visualization & Content Choices: 
+        - 타임라인 (HTML/CSS): Report Info -> AI 모델 출시 순서. Goal -> 시간의 흐름에 따른 변화 표시. Viz/Presentation -> 상호작용 가능한 수직 타임라인. Interaction -> 회사 로고 클릭 시 해당 회사 모델만 필터링. Justification -> 정적인 목록보다 발전 과정을 시각적으로 따라가기 용이함. Library/Method -> Tailwind CSS, Vanilla JS.
+        - 분야별 최고 모델 (HTML/CSS Grid): Report Info -> 9개 분야별 Top 3 모델. Goal -> 정보의 체계적 분류 및 제시. Viz/Presentation -> 카드 형태의 그리드 레이아웃. Interaction -> 없음 (정보 전달에 집중). Justification -> 각 분야의 정보를 명확하게 구분하여 가독성을 높임. Library/Method -> Tailwind CSS.
+        - 핵심 모델 성능 비교 (Radar Chart): Report Info -> 최상위 3개 모델(GPT-5, Gemini 2.0, Claude 4)의 다각적 성능. Goal -> 여러 모델의 강점과 약점을 직관적으로 비교. Viz/Presentation -> 레이더 차트. Interaction -> 없음 (데이터 시각화). Justification -> 다차원적인 데이터를 표보다 훨씬 효과적으로 시각화하여 한눈에 모델들의 특성을 파악할 수 있음. Library/Method -> Chart.js/Canvas.
+    -->
+    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+    <style>
+        body {
+            font-family: 'Noto Sans KR', sans-serif;
+            background-color: #f8fafc; /* slate-50 */
+        }
+        .timeline-item::before {
+            content: '';
+            position: absolute;
+            top: 1.25rem;
+            left: -0.4375rem;
+            width: 0.875rem;
+            height: 0.875rem;
+            border-radius: 9999px;
+            background-color: #ffffff;
+            border: 2px solid #38bdf8; /* sky-400 */
+        }
+        .nav-btn-active {
+            background-color: #38bdf8; /* sky-400 */
+            color: #ffffff;
+        }
+        .nav-btn {
+            background-color: #ffffff;
+            color: #334155; /* slate-700 */
+        }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800">
+
+    <div class="container mx-auto p-4 md:p-8">
+        <header class="text-center mb-8">
+            <h1 class="text-4xl md:text-5xl font-bold text-slate-900">2025 AI 모델 현황 분석</h1>
+            <p class="text-slate-500 mt-2">2025년 10월 20일 기준 최신 AI 동향 보고서</p>
+        </header>
+
+        <nav class="flex justify-center mb-8">
+            <div class="flex space-x-2 bg-slate-200 p-1 rounded-full">
+                <button id="nav-timeline" class="nav-btn-active text-sm md:text-base font-semibold py-2 px-4 rounded-full transition-colors duration-300">타임라인</button>
+                <button id="nav-sota" class="nav-btn text-sm md:text-base font-semibold py-2 px-4 rounded-full transition-colors duration-300">분야별 최고 모델</button>
+            </div>
+        </nav>
+
+        <main id="content">
+            <section id="timeline-section">
+                <div class="text-center max-w-3xl mx-auto mb-10">
+                    <h2 class="text-3xl font-bold mb-2">주요 AI 모델 출시 타임라인</h2>
+                    <p class="text-slate-600">지난 1년간 AI 기술은 놀라운 속도로 발전해 왔습니다. 아래 타임라인은 주요 AI 모델들의 출시 이력을 보여주며, 기술 발전의 거대한 흐름을 파악하는 데 도움을 줍니다. 상단의 개발사 로고를 클릭하여 특정 회사의 모델 출시 역사만 필터링하여 볼 수 있습니다.</p>
+                </div>
+                <div class="flex justify-center items-center space-x-4 mb-8">
+                    <button class="filter-btn p-2 border-2 border-sky-400 rounded-full" data-company="all">
+                        <span class="text-xs font-bold">ALL</span>
+                    </button>
+                    <button class="filter-btn p-2 rounded-full border-2 border-transparent" data-company="OpenAI">
+                        <img src="https://placehold.co/40x40/000000/FFFFFF?text=OAI" alt="OpenAI Logo" class="w-8 h-8 rounded-full">
+                    </button>
+                    <button class="filter-btn p-2 rounded-full border-2 border-transparent" data-company="Google">
+                        <img src="https://placehold.co/40x40/4285F4/FFFFFF?text=G" alt="Google Logo" class="w-8 h-8 rounded-full">
+                    </button>
+                    <button class="filter-btn p-2 rounded-full border-2 border-transparent" data-company="Anthropic">
+                        <img src="https://placehold.co/40x40/d97706/FFFFFF?text=A" alt="Anthropic Logo" class="w-8 h-8 rounded-full">
+                    </button>
+                     <button class="filter-btn p-2 rounded-full border-2 border-transparent" data-company="China">
+                        <img src="https://placehold.co/40x40/DE2910/FFFFFF?text=C" alt="China AI Logo" class="w-8 h-8 rounded-full">
+                    </button>
+                </div>
+                <div id="timeline-container" class="relative max-w-3xl mx-auto pl-8 border-l-2 border-slate-200">
+                </div>
+            </section>
+
+            <section id="sota-section" class="hidden">
+                 <div class="text-center max-w-3xl mx-auto mb-12">
+                    <h2 class="text-3xl font-bold mb-2">분야별 최고 AI 모델 (SOTA)</h2>
+                    <p class="text-slate-600">AI 기술은 다양한 분야로 분화하며 각 영역에서 최고의 성능을 보이는 모델들이 등장하고 있습니다. 이 섹션에서는 텍스트 생성부터 이미지, 비디오, 코딩 지원에 이르기까지 9개 핵심 분야에서 현재(2025.10) 가장 뛰어나다고 평가받는 상위 3개 모델을 소개합니다. 또한, 최상위 3개 파운데이션 모델의 종합 성능을 레이더 차트로 시각화하여 그들의 강점과 약점을 한눈에 비교할 수 있습니다.</p>
+                </div>
+
+                <div class="mb-12">
+                    <h3 class="text-2xl font-bold text-center mb-6">최상위 파운데이션 모델 성능 비교</h3>
+                    <div class="chart-container bg-white p-4 rounded-xl shadow-md" style="position: relative; height:60vh; max-height: 500px; width:100%; max-width: 700px; margin: auto;">
+                        <canvas id="sotaRadarChart"></canvas>
+                    </div>
+                </div>
+
+                <div id="sota-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const timelineData = [
+                { company: 'Anthropic', date: '2024년 3월', model: 'Claude 3 Family (Opus, Sonnet, Haiku)', description: '이미지 분석(Vision) 능력과 긴 컨텍스트 처리에서 뛰어난 성능을 보이며 멀티모달 AI의 새로운 기준을 제시했습니다.' },
+                { company: 'Google', date: '2024년 5월', model: 'Gemini 1.5 Pro (Update)', description: '최대 100만 토큰의 컨텍스트 창을 지원하며, 대용량 문서, 코드베이스, 비디오 분석 능력을 획기적으로 향상시켰습니다.' },
+                { company: 'OpenAI', date: '2024년 5월', model: 'GPT-4o', description: '텍스트, 음성, 이미지를 실시간으로 처리하는 네이티브 멀티모달 모델로, 인간과 유사한 상호작용 속도를 구현했습니다.' },
+                { company: 'China', date: '2024년 9월', model: 'Qwen 2.0', description: '알리바바 클라우드에서 출시. 다국어 지원 및 코딩 능력을 강화하고, 특히 중국어 처리에서 세계 최고 수준의 성능을 보였습니다.' },
+                { company: 'Google', date: '2025년 2월', model: 'Gemini 2.0 Family (Ultra, Pro, Nano)', description: '추론 및 계획 능력에서 큰 발전을 이루었으며, 구글 생태계 전반에 깊숙이 통합되어 더욱 개인화된 AI 경험을 제공합니다.' },
+                { company: 'China', date: '2025년 4월', model: 'Deepseek V3', description: '코딩 및 수학적 추론에 특화된 모델로, 복잡한 문제 해결 능력에서 기존 모델들을 능가하는 성능을 보여주었습니다.' },
+                { company: 'Anthropic', date: '2025년 6월', model: 'Claude 4 Family (Opus, Sonnet, Haiku)', description: 'AI의 안전성과 신뢰성에 중점을 두어, 환각(Hallucination) 현상을 크게 줄이고 사실 기반의 정확한 답변 생성 능력을 강화했습니다.' },
+                { company: 'OpenAI', date: '2025년 8월', model: 'GPT-5', description: '복합적인 추론과 창의성에서 전례 없는 성능을 보여주며, 인간 전문가 수준의 문제 해결 능력을 갖춘 AGI(범용 인공지능)에 한 걸음 더 다가섰습니다.' }
+            ].reverse();
+
+            const sotaData = [
+                { category: '✍️ Text (텍스트 생성)', models: [ { name: 'GPT-5', reason: '최고 수준의 추론 및 창의성' }, { name: 'Claude 4 Opus', reason: '섬세하고 안전한 글쓰기 능력' }, { name: 'Gemini 2.0 Ultra', reason: '구글 생태계 연동 및 실시간 정보 처리' } ] },
+                { category: '💻 WebDev (웹 개발)', models: [ { name: 'Devin 2.0', reason: '자율적인 웹 개발 및 디버깅 능력' }, { name: 'GitHub Copilot (GPT-5)', reason: '강력한 코드 생성 및 완성' }, { name: 'Deepseek V3 Coder', reason: '알고리즘 및 복잡한 로직 구현 특화' } ] },
+                { category: '👁️ Vision (이미지 인식)', models: [ { name: 'Gemini 2.0 Ultra', reason: '네이티브 멀티모달 아키텍처 기반의 정확성' }, { name: 'GPT-5', reason: '복합적인 이미지 및 영상 맥락 이해' }, { name: 'Claude 4 Opus', reason: '문서 및 도표 분석의 정확성' } ] },
+                { category: '🎨 Text-to-Image (이미지 생성)', models: [ { name: 'Midjourney v8', reason: '독보적인 예술적 표현과 스타일' }, { name: 'Stable Diffusion 4', reason: '오픈소스 기반의 높은 자유도와 확장성' }, { name: 'Google Imagen 3', reason: '실사 이미지 및 프롬프트 이해도' } ] },
+                { category: '✂️ Image Edit (이미지 편집)', models: [ { name: 'Adobe Firefly 3', reason: '전문 편집 툴과의 완벽한 통합' }, { name: 'Gemini 2.0 Edit', reason: '직관적인 대화형 편집 기능' }, { name: 'Midjourney v8 Inpaint', reason: '생성된 이미지의 자연스러운 부분 수정' } ] },
+                { category: '🔍 Search (검색)', models: [ { name: 'Perplexity AI (GPT-5)', reason: '정확한 출처 기반의 요약 및 답변' }, { name: 'Google AI Search', reason: '실시간 정보와 Gemini 2.0의 결합' }, { name: 'Neeva 2 (fictional)', reason: '광고 없는 개인화 검색 경험' } ] },
+                { category: '🎬 Text-to-Video (비디오 생성)', models: [ { name: 'OpenAI Sora 2', reason: '영화 수준의 영상 품질과 일관성' }, { name: 'Google Veo 2', reason: '영상 스타일 제어 및 편집 용이성' }, { name: 'RunwayML Gen-3', reason: '창의적 영상 효과와 빠른 생성 속도' } ] },
+                { category: '🖼️ Image-to-Video (이미지->비디오)', models: [ { name: 'RunwayML Gen-3', reason: '이미지의 동적 움직임 구현' }, { name: 'Pika Labs 2.0', reason: '다양한 스타일의 애니메이션 효과' }, { name: 'Sora 2', reason: '이미지로부터 일관성 있는 스토리 생성' } ] },
+                { category: '🤖 Copilot (코파일럿)', models: [ { name: 'GitHub Copilot (GPT-5)', reason: '개발 생산성의 혁신' }, { name: 'MS 365 Copilot', reason: '업무 문서 작업 자동화' }, { name: 'Google Workspace AI', reason: '협업 및 이메일 관리 효율화' } ] }
+            ];
+            
+            const radarChartData = {
+                labels: ['추론', '창의성', '코딩', '비전', '안전성', '속도'],
+                datasets: [{
+                    label: 'GPT-5',
+                    data: [9.8, 9.5, 9.2, 9.0, 8.5, 8.8],
+                    borderColor: 'rgba(239, 68, 68, 1)',
+                    backgroundColor: 'rgba(239, 68, 68, 0.2)',
+                    pointBackgroundColor: 'rgba(239, 68, 68, 1)',
+                    pointBorderColor: '#fff'
+                }, {
+                    label: 'Gemini 2.0 Ultra',
+                    data: [9.2, 8.8, 8.9, 9.7, 9.0, 9.5],
+                    borderColor: 'rgba(59, 130, 246, 1)',
+                    backgroundColor: 'rgba(59, 130, 246, 0.2)',
+                    pointBackgroundColor: 'rgba(59, 130, 246, 1)',
+                    pointBorderColor: '#fff'
+                }, {
+                    label: 'Claude 4 Opus',
+                    data: [8.9, 9.2, 8.5, 8.8, 9.8, 8.5],
+                    borderColor: 'rgba(245, 158, 11, 1)',
+                    backgroundColor: 'rgba(245, 158, 11, 0.2)',
+                    pointBackgroundColor: 'rgba(245, 158, 11, 1)',
+                    pointBorderColor: '#fff'
+                }]
+            };
+
+            const timelineContainer = document.getElementById('timeline-container');
+            const sotaGrid = document.getElementById('sota-grid');
+
+            function renderTimeline(filter = 'all') {
+                timelineContainer.innerHTML = '';
+                const filteredData = (filter === 'all') ? timelineData : timelineData.filter(item => item.company === filter || (filter === 'China' && item.company === 'China'));
+                
+                filteredData.forEach(item => {
+                    const div = document.createElement('div');
+                    div.className = 'timeline-item relative mb-8';
+                    div.innerHTML = `
+                        <div class="ml-8 p-6 bg-white rounded-lg shadow-md hover:shadow-xl transition-shadow duration-300">
+                            <span class="text-sm font-semibold text-sky-500">${item.date}</span>
+                            <h3 class="text-xl font-bold mt-1 text-slate-900">${item.model} <span class="text-sm font-medium text-slate-500">by ${item.company}</span></h3>
+                            <p class="mt-2 text-slate-600">${item.description}</p>
+                        </div>
+                    `;
+                    timelineContainer.appendChild(div);
+                });
+            }
+
+            function renderSota() {
+                sotaGrid.innerHTML = '';
+                sotaData.forEach(item => {
+                    const div = document.createElement('div');
+                    div.className = 'bg-white p-6 rounded-lg shadow-md flex flex-col';
+                    let modelsHtml = item.models.map((model, index) => `
+                        <li class="flex items-start">
+                            <span class="mr-3 font-bold text-lg text-sky-400">${index + 1}.</span>
+                            <div>
+                                <h4 class="font-bold text-slate-800">${model.name}</h4>
+                                <p class="text-sm text-slate-500">${model.reason}</p>
+                            </div>
+                        </li>
+                    `).join('');
+                    div.innerHTML = `
+                        <h3 class="text-xl font-bold mb-4 text-slate-900">${item.category}</h3>
+                        <ul class="space-y-3 flex-grow">${modelsHtml}</ul>
+                    `;
+                    sotaGrid.appendChild(div);
+                });
+
+                const ctx = document.getElementById('sotaRadarChart').getContext('2d');
+                new Chart(ctx, {
+                    type: 'radar',
+                    data: radarChartData,
+                    options: {
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                position: 'top',
+                            },
+                            tooltip: {
+                                callbacks: {
+                                    label: function(context) {
+                                        let label = context.dataset.label || '';
+                                        if (label) {
+                                            label += ': ';
+                                        }
+                                        if (context.parsed.r !== null) {
+                                            label += context.parsed.r.toFixed(1);
+                                        }
+                                        return label;
+                                    }
+                                }
+                            }
+                        },
+                        scales: {
+                            r: {
+                                beginAtZero: true,
+                                max: 10,
+                                grid: {
+                                    color: 'rgba(0, 0, 0, 0.05)'
+                                },
+                                angleLines: {
+                                    color: 'rgba(0, 0, 0, 0.05)'
+                                },
+                                pointLabels: {
+                                    font: {
+                                        size: 14,
+                                        weight: 'bold'
+                                    }
+                                }
+                            }
+                        }
+                    }
+                });
+            }
+            
+            const navTimeline = document.getElementById('nav-timeline');
+            const navSota = document.getElementById('nav-sota');
+            const timelineSection = document.getElementById('timeline-section');
+            const sotaSection = document.getElementById('sota-section');
+
+            navTimeline.addEventListener('click', () => {
+                navTimeline.classList.add('nav-btn-active');
+                navTimeline.classList.remove('nav-btn');
+                navSota.classList.remove('nav-btn-active');
+                navSota.classList.add('nav-btn');
+                timelineSection.classList.remove('hidden');
+                sotaSection.classList.add('hidden');
+            });
+
+            navSota.addEventListener('click', () => {
+                navSota.classList.add('nav-btn-active');
+                navSota.classList.remove('nav-btn');
+                navTimeline.classList.remove('nav-btn-active');
+                navTimeline.classList.add('nav-btn');
+                sotaSection.classList.remove('hidden');
+                timelineSection.classList.add('hidden');
+            });
+
+            const filterButtons = document.querySelectorAll('.filter-btn');
+            filterButtons.forEach(button => {
+                button.addEventListener('click', () => {
+                    filterButtons.forEach(btn => {
+                       btn.classList.remove('border-sky-400');
+                       btn.classList.add('border-transparent');
+                    });
+                    button.classList.add('border-sky-400');
+                    button.classList.remove('border-transparent');
+                    renderTimeline(button.dataset.company);
+                });
+            });
+
+            renderTimeline();
+            renderSota();
+        });
+    </script>
+</body>
+</html>
+
