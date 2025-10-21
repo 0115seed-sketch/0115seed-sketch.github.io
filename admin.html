@@ -730,8 +730,8 @@ git push</pre>
             
             try {
                 const apiKey = "AIzaSyC7k2M2WwMwoKs1bAoJYdDVUyPFv4116vo"; // Gemini API 키
-                const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent?key=${apiKey}`;
-                
+                const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
+
                 // 아이콘 목록을 문자열로 변환
                 const iconListStr = iconList.map(item => `${item.name}: ${item.icon}`).join('\n');
                 
@@ -779,11 +779,22 @@ ${iconListStr}
                 });
                 
                 if (!response.ok) {
-                    throw new Error(`API 요청 실패: ${response.status}`);
+                    const errorData = await response.text();
+                    console.error('API 오류 상세:', errorData);
+                    throw new Error(`API 요청 실패: ${response.status} - ${errorData.substring(0, 200)}`);
                 }
                 
                 const result = await response.json();
+                console.log('API 응답:', result);
+                
+                // 응답 구조 확인
+                if (!result.candidates || !result.candidates[0] || !result.candidates[0].content) {
+                    console.error('예상치 못한 응답 구조:', result);
+                    throw new Error('AI 응답 형식이 올바르지 않습니다.');
+                }
+                
                 const jsonText = result.candidates[0].content.parts[0].text;
+                console.log('생성된 JSON:', jsonText);
                 const aiResult = JSON.parse(jsonText);
                 
                 // 결과 적용
@@ -794,8 +805,8 @@ ${iconListStr}
                 alert('AI가 설명과 아이콘을 생성했습니다!\n필요시 수정하세요.');
                 
             } catch (error) {
-                console.error('AI 생성 오류:', error);
-                alert('AI 생성 중 오류가 발생했습니다.\n수동으로 입력해주세요.');
+                console.error('AI 생성 오류 상세:', error);
+                alert(`AI 생성 중 오류가 발생했습니다.\n\n오류 내용: ${error.message}\n\n브라우저 콘솔(F12)에서 자세한 내용을 확인하세요.`);
             } finally {
                 btn.disabled = false;
                 btn.innerHTML = originalHTML;
