@@ -77,8 +77,18 @@
       "description": "발표자를 인식하는 발표벨입니다.",
       "url": "https://0115seed-sketch.github.io/first-html/발표벨.html",
       "icon": "fas fa-bell",
-      "visible": true,
+      "visible": false,
       "order": 8
+    },
+    {
+      "name": "역사 속 인물 매칭",
+      "category": "흥미로운 앱",
+      "description": "다섯 가지 질문을 통해, 당신과 닮은 역사 속 인물을 찾아보세요.",
+      "url": "http://0115seed-sketch.github.io/first-html /역사인물찾기.html",
+      "icon": "fas fa-book",
+      "visible": true,
+      "id": 14,
+      "order": 9
     },
     {
       "id": 9,
@@ -88,37 +98,7 @@
       "url": "https://0115seed-sketch.github.io/first-html/소수 찾기 게임.html",
       "icon": "fas fa-calculator",
       "visible": true,
-      "order": 9
-    },
-    {
-      "id": 10,
-      "name": "사진 투표",
-      "category": "흥미로운 앱",
-      "description": "사진을 보고 투표해 통계내는 앱입니다.",
-      "url": "https://0115seed-sketch.github.io/first-html/사진선택.html",
-      "icon": "fas fa-image",
-      "visible": true,
       "order": 10
-    },
-    {
-      "id": 11,
-      "name": "로또 번호 확인",
-      "category": "흥미로운 앱",
-      "description": "로또 당첨 번호를 확인하고 번호를 생성하는 앱입니다.",
-      "url": "https://0115seed-sketch.github.io/first-html/로또확인.html",
-      "icon": "fas fa-dice",
-      "visible": true,
-      "order": 11
-    },
-    {
-      "id": 12,
-      "name": "네이버 부동산 수집기",
-      "category": "흥미로운 앱",
-      "description": "네이버 부동산 매물 정보를 클릭 한 번으로 엑셀 파일로 다운로드합니다.",
-      "url": "https://github.com/0115seed-sketch/naver-real-estate-scraper",
-      "icon": "fas fa-home",
-      "visible": true,
-      "order": 12
     },
     {
       "id": 13,
@@ -128,7 +108,37 @@
       "url": "https://0115seed-sketch.github.io/first-html/AI타임라인.html",
       "icon": "fas fa-brain",
       "visible": true,
+      "order": 11
+    },
+    {
+      "id": 10,
+      "name": "사진 투표",
+      "category": "흥미로운 앱",
+      "description": "사진을 보고 투표해 통계내는 앱입니다.",
+      "url": "https://0115seed-sketch.github.io/first-html/사진선택.html",
+      "icon": "fas fa-image",
+      "visible": true,
+      "order": 12
+    },
+    {
+      "id": 11,
+      "name": "로또 번호 확인",
+      "category": "흥미로운 앱",
+      "description": "로또 당첨 번호를 확인하고 번호를 생성하는 앱입니다.",
+      "url": "https://0115seed-sketch.github.io/first-html/로또확인.html",
+      "icon": "fas fa-dice",
+      "visible": true,
       "order": 13
+    },
+    {
+      "id": 12,
+      "name": "네이버 부동산 수집기",
+      "category": "흥미로운 앱",
+      "description": "네이버 부동산 매물 정보를 클릭 한 번으로 엑셀 파일로 다운로드합니다.",
+      "url": "https://github.com/0115seed-sketch/naver-real-estate-scraper",
+      "icon": "fas fa-home",
+      "visible": true,
+      "order": 14
     }
   ]
 }
