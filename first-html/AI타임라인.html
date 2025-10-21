@@ -11,8 +11,8 @@
     <!-- Application Structure Plan: 이 애플리케이션은 사용자가 AI 모델의 발전사와 현재 성능을 직관적으로 이해할 수 있도록 두 개의 명확한 섹션(타임라인, 분야별 최고 모델)으로 정보를 분리하여 설계되었습니다. 사용자는 탭 방식의 네비게이션을 통해 두 관점을 자유롭게 오갈 수 있습니다. '타임라인' 섹션에서는 회사별 필터링 기능을 통해 특정 기업의 모델 발전사를 집중적으로 탐색할 수 있으며, '분야별 최고 모델' 섹션에서는 복잡한 성능 지표를 한눈에 비교할 수 있는 레이더 차트를 제공하여 정보 탐색의 깊이를 더했습니다. 이러한 구조는 정보를 단순히 나열하는 것보다 사용자의 능동적인 탐색과 발견을 유도하여 더 높은 이해를 돕기 위해 채택되었습니다. -->
     <!-- Visualization & Content Choices: 
         - 타임라인 (HTML/CSS): Report Info -> AI 모델 출시 순서. Goal -> 시간의 흐름에 따른 변화 표시. Viz/Presentation -> 상호작용 가능한 수직 타임라인. Interaction -> 회사 로고 클릭 시 해당 회사 모델만 필터링. Justification -> 정적인 목록보다 발전 과정을 시각적으로 따라가기 용이함. Library/Method -> Tailwind CSS, Vanilla JS.
-        - 분야별 최고 모델 (HTML/CSS Grid): Report Info -> 9개 분야별 Top 3 모델. Goal -> 정보의 체계적 분류 및 제시. Viz/Presentation -> 카드 형태의 그리드 레이아웃. Interaction -> 없음 (정보 전달에 집중). Justification -> 각 분야의 정보를 명확하게 구분하여 가독성을 높임. Library/Method -> Tailwind CSS.
-        - 핵심 모델 성능 비교 (Radar Chart): Report Info -> 최상위 3개 모델(GPT-5, Gemini 2.0, Claude 4)의 다각적 성능. Goal -> 여러 모델의 강점과 약점을 직관적으로 비교. Viz/Presentation -> 레이더 차트. Interaction -> 없음 (데이터 시각화). Justification -> 다차원적인 데이터를 표보다 훨씬 효과적으로 시각화하여 한눈에 모델들의 특성을 파악할 수 있음. Library/Method -> Chart.js/Canvas.
+        - 분야별 최고 모델 (HTML/CSS Grid): Report Info -> 9개 분야별 Top 3 모델. Goal -> 정보의 체계적 분류 및 제시. Viz/Presentation -> 카드 형태의 그리드 레이어웃. Interaction -> 없음 (정보 전달에 집중). Justification -> 각 분야의 정보를 명확하게 구분하여 가독성을 높임. Library/Method -> Tailwind CSS.
+        - 핵심 모델 성능 비교 (Radar Chart): Report Info -> 최상위 3개 모델(GPT-5, Gemini 2.5 Pro, Claude Sonnet 4.5)의 다각적 성능. Goal -> 여러 모델의 강점과 약점을 직관적으로 비교. Viz/Presentation -> 레이더 차트. Interaction -> 없음 (데이터 시각화). Justification -> 다차원적인 데이터를 표보다 훨씬 효과적으로 시각화하여 한눈에 모델들의 특성을 파악할 수 있음. Library/Method -> Chart.js/Canvas.
     -->
     <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
     <style>
@@ -62,7 +62,7 @@
                     <h2 class="text-3xl font-bold mb-2">주요 AI 모델 출시 타임라인</h2>
                     <p class="text-slate-600">지난 1년간 AI 기술은 놀라운 속도로 발전해 왔습니다. 아래 타임라인은 주요 AI 모델들의 출시 이력을 보여주며, 기술 발전의 거대한 흐름을 파악하는 데 도움을 줍니다. 상단의 개발사 로고를 클릭하여 특정 회사의 모델 출시 역사만 필터링하여 볼 수 있습니다.</p>
                 </div>
-                <div class="flex justify-center items-center space-x-4 mb-8">
+                <div class="flex justify-center items-center space-x-2 md:space-x-4 mb-8 flex-wrap">
                     <button class="filter-btn p-2 border-2 border-sky-400 rounded-full" data-company="all">
                         <span class="text-xs font-bold">ALL</span>
                     </button>
@@ -77,6 +77,15 @@
                     </button>
                      <button class="filter-btn p-2 rounded-full border-2 border-transparent" data-company="China">
                         <img src="https://placehold.co/40x40/DE2910/FFFFFF?text=C" alt="China AI Logo" class="w-8 h-8 rounded-full">
+                    </button>
+                    <button class="filter-btn p-2 rounded-full border-2 border-transparent" data-company="Meta">
+                        <img src="https://placehold.co/40x40/1877F2/FFFFFF?text=M" alt="Meta Logo" class="w-8 h-8 rounded-full">
+                    </button>
+                     <button class="filter-btn p-2 rounded-full border-2 border-transparent" data-company="xAI">
+                        <img src="https://placehold.co/40x40/1DA1F2/FFFFFF?text=X" alt="xAI Logo" class="w-8 h-8 rounded-full">
+                    </button>
+                     <button class="filter-btn p-2 rounded-full border-2 border-transparent" data-company="Microsoft">
+                        <img src="https://placehold.co/40x40/F25022/FFFFFF?text=MS" alt="Microsoft Logo" class="w-8 h-8 rounded-full">
                     </button>
                 </div>
                 <div id="timeline-container" class="relative max-w-3xl mx-auto pl-8 border-l-2 border-slate-200">
@@ -105,47 +114,66 @@
     <script>
         document.addEventListener('DOMContentLoaded', () => {
             const timelineData = [
-                { company: 'Anthropic', date: '2024년 3월', model: 'Claude 3 Family (Opus, Sonnet, Haiku)', description: '이미지 분석(Vision) 능력과 긴 컨텍스트 처리에서 뛰어난 성능을 보이며 멀티모달 AI의 새로운 기준을 제시했습니다.' },
-                { company: 'Google', date: '2024년 5월', model: 'Gemini 1.5 Pro (Update)', description: '최대 100만 토큰의 컨텍스트 창을 지원하며, 대용량 문서, 코드베이스, 비디오 분석 능력을 획기적으로 향상시켰습니다.' },
-                { company: 'OpenAI', date: '2024년 5월', model: 'GPT-4o', description: '텍스트, 음성, 이미지를 실시간으로 처리하는 네이티브 멀티모달 모델로, 인간과 유사한 상호작용 속도를 구현했습니다.' },
-                { company: 'China', date: '2024년 9월', model: 'Qwen 2.0', description: '알리바바 클라우드에서 출시. 다국어 지원 및 코딩 능력을 강화하고, 특히 중국어 처리에서 세계 최고 수준의 성능을 보였습니다.' },
-                { company: 'Google', date: '2025년 2월', model: 'Gemini 2.0 Family (Ultra, Pro, Nano)', description: '추론 및 계획 능력에서 큰 발전을 이루었으며, 구글 생태계 전반에 깊숙이 통합되어 더욱 개인화된 AI 경험을 제공합니다.' },
-                { company: 'China', date: '2025년 4월', model: 'Deepseek V3', description: '코딩 및 수학적 추론에 특화된 모델로, 복잡한 문제 해결 능력에서 기존 모델들을 능가하는 성능을 보여주었습니다.' },
-                { company: 'Anthropic', date: '2025년 6월', model: 'Claude 4 Family (Opus, Sonnet, Haiku)', description: 'AI의 안전성과 신뢰성에 중점을 두어, 환각(Hallucination) 현상을 크게 줄이고 사실 기반의 정확한 답변 생성 능력을 강화했습니다.' },
-                { company: 'OpenAI', date: '2025년 8월', model: 'GPT-5', description: '복합적인 추론과 창의성에서 전례 없는 성능을 보여주며, 인간 전문가 수준의 문제 해결 능력을 갖춘 AGI(범용 인공지능)에 한 걸음 더 다가섰습니다.' }
-            ].reverse();
+                { company: 'Microsoft', date: '2025년 10월', model: 'MAI-Image-1', description: 'Microsoft의 첫 자체 개발 이미지 생성 모델. 사진 사실적 이미지 생성에 특화되어 LMArena 톱 10에 데뷔했습니다.' },
+                { company: 'Anthropic', date: '2025년 10월', model: 'Claude Haiku 4.5', description: '더 작고 저렴한 모델로, Claude Sonnet 4 및 GPT-5와 대등한 코딩 성능을 보여주며 SWE-bench Verified 검증을 받았습니다.' },
+                { company: 'China', date: '2025년 9월', model: 'DeepSeek-V3.2-Exp', description: 'DeepSeek Sparse Attention (DSA) 기술을 적용하여 API 가격을 50% 이상 인하했습니다.' },
+                { company: 'xAI', date: '2025년 9월', model: 'Grok 4 Fast', description: 'Grok 4와 유사한 성능을 40% 적은 토큰으로 제공하며, 2M 토큰 컨텍스트와 OpenAI o3 대비 64배 저렴한 비용이 특징입니다.' },
+                { company: 'Google', date: '2025년 9월', model: 'Gemini 2.5 Flash & Flash-Lite (Update)', description: '품질, 속도, 효율성을 개선하여 장기 에이전트 작업에서 15%의 성능 향상을 이루었습니다.' },
+                { company: 'Anthropic', date: '2025년 9월', model: 'Claude Sonnet 4.5', description: '1M 토큰 컨텍스트와 강력한 에이전트 구축 능력으로 현재 세계 최고의 코딩 모델로 평가받습니다.' },
+                { company: 'China', date: '2025년 8월', model: 'DeepSeek-V3.1 (Update)', description: '하이브리드 추론 모드(Think & Non-Think)와 128K 컨텍스트를 지원하며 Anthropic API 형식을 도입했습니다.' },
+                { company: 'OpenAI', date: '2025년 8월', model: 'gpt-oss-20B & 120B', description: 'OpenAI의 첫 오픈 웨이트 모델. 120B 및 20B 파라미터의 MoE 아키텍처를 MIT 라이선스로 공개했습니다.' },
+                { company: 'Anthropic', date: '2025년 8월', model: 'Claude Opus 4.1', description: 'Claude Opus 4의 업그레이드 버전입니다.' },
+                { company: 'OpenAI', date: '2025년 8월', model: 'GPT-5', description: '추론(o-시리즈)과 속도(GPT 시리즈)를 결합한 통합 모델. 128K 토큰 컨텍스트를 모든 무료 사용자에게 제공합니다.' },
+                { company: 'xAI', date: '2025년 7월', model: 'Grok 4 & Grok 4 Heavy', description: '20만개의 GPU로 훈련된 xAI의 플래그십 모델. 네이티브 도구 사용 및 실시간 검색을 통합했으며, Heavy 버전은 여러 AI 에이전트가 교차 검증하는 방식을 사용합니다.' },
+                { company: 'Google', date: '2025년 6월', model: 'Imagen 4 Ultra & Standard', description: 'Google DeepMind의 최신 이미지 생성 모델입니다.' },
+                { company: 'Google', date: '2025년 6월', model: 'Gemini 2.5 Flash & Flash-Lite', description: 'Gemini 2.5 Pro의 경량화 버전으로 안정화된 첫 모델입니다. 네이티브 오디오 모델도 함께 출시되었습니다.' },
+                { company: 'China', date: '2025년 5월', model: 'Qwen2.5-Omni 3B', description: '7B 버전에 비해 VRAM을 50% 절감하면서도 90%의 성능을 유지하는 경량 멀티모달 모델입니다.' },
+                { company: 'Anthropic', date: '2025년 5월', model: 'Claude 4 Opus & Sonnet', description: '4세대 모델. Opus 4는 하이브리드 추론 능력, Sonnet 4는 1M 토큰 컨텍스트를 지원하는 최고의 코딩 모델로 출시되었습니다.' },
+                { company: 'Mistral AI', date: '2025년 5월', model: 'Mistral Medium 3', description: 'Claude Sonnet 3.7의 90% 성능을 8배 저렴한 비용으로 제공하는 효율성 중심 모델입니다.' },
+                { company: 'China', date: '2025년 4월', model: 'Qwen3', description: 'Alibaba의 차세대 모델 시리즈로, MoE 모델은 o1, o3-mini, DeepSeek R1, Grok 3을 능가하는 성능을 보였습니다.' },
+                { company: 'Meta', date: '2025년 4월', model: 'Llama 4 Scout & Maverick', description: 'Meta의 Llama 4 시리즈 첫 출시. MoE 아키텍처로 전환하고 멀티모달을 지원하며, Scout는 10M, Maverick은 1M의 컨텍스트 윈도우를 가집니다.' },
+                { company: 'China', date: '2025년 3월', model: 'DeepSeek-V3.1', description: 'DeepSeek-V3의 업그레이드 버전으로 840B 토큰으로 추가 사전 학습되었습니다.' },
+                { company: 'China', date: '2025년 3월', model: 'Qwen2.5-Omni', description: '텍스트, 이미지, 오디오, 비디오를 모두 인식하는 멀티모달 모델입니다.' },
+                { company: 'Google', date: '2025년 3월', model: 'Gemini 2.5 Pro', description: '네이티브 사고(thinking) 기능을 탑재하고 1M 토큰 컨텍스트 윈도우를 지원하는 Google의 가장 지능적인 모델로, LMArena에서 1위로 데뷔했습니다.' },
+                { company: 'Microsoft', date: '2025년 2월', model: 'Phi-4 multimodal', description: 'Microsoft의 5.6B 및 3.8B 파라미터 소형 멀티모달 모델입니다.' },
+                { company: 'Anthropic', date: '2025년 2월', model: 'Claude 3.7 Sonnet', description: 'Claude 3 시리즈의 업그레이드 버전으로 대화 및 추론 능력이 향상되었습니다.' },
+                { company: 'xAI', date: '2025년 2월', model: 'Grok-3', description: 'xAI의 Grok 시리즈 3세대 모델입니다.' },
+                { company: 'OpenAI', date: '2025년 2월', model: 'GPT-4.5', description: 'GPT-4의 후속 버전으로 추론 및 성능이 개선되었습니다.' },
+                { company: 'China', date: '2025년 1월', model: 'Qwen2.5-Max', description: 'Alibaba Cloud의 대규모 MoE 모델로, 토큰당 2.7B 매개변수만 활성화하여 추론 비용을 절감했습니다.' },
+                { company: 'China', date: '2025년 1월', model: 'DeepSeek-R1', description: 'DeepSeek-V3 기반의 추론 특화 모델로, 강력한 추론 능력과 낮은 개발 비용으로 주목받았습니다.' },
+            ];
 
             const sotaData = [
-                { category: '✍️ Text (텍스트 생성)', models: [ { name: 'GPT-5', reason: '최고 수준의 추론 및 창의성' }, { name: 'Claude 4 Opus', reason: '섬세하고 안전한 글쓰기 능력' }, { name: 'Gemini 2.0 Ultra', reason: '구글 생태계 연동 및 실시간 정보 처리' } ] },
-                { category: '💻 WebDev (웹 개발)', models: [ { name: 'Devin 2.0', reason: '자율적인 웹 개발 및 디버깅 능력' }, { name: 'GitHub Copilot (GPT-5)', reason: '강력한 코드 생성 및 완성' }, { name: 'Deepseek V3 Coder', reason: '알고리즘 및 복잡한 로직 구현 특화' } ] },
-                { category: '👁️ Vision (이미지 인식)', models: [ { name: 'Gemini 2.0 Ultra', reason: '네이티브 멀티모달 아키텍처 기반의 정확성' }, { name: 'GPT-5', reason: '복합적인 이미지 및 영상 맥락 이해' }, { name: 'Claude 4 Opus', reason: '문서 및 도표 분석의 정확성' } ] },
-                { category: '🎨 Text-to-Image (이미지 생성)', models: [ { name: 'Midjourney v8', reason: '독보적인 예술적 표현과 스타일' }, { name: 'Stable Diffusion 4', reason: '오픈소스 기반의 높은 자유도와 확장성' }, { name: 'Google Imagen 3', reason: '실사 이미지 및 프롬프트 이해도' } ] },
-                { category: '✂️ Image Edit (이미지 편집)', models: [ { name: 'Adobe Firefly 3', reason: '전문 편집 툴과의 완벽한 통합' }, { name: 'Gemini 2.0 Edit', reason: '직관적인 대화형 편집 기능' }, { name: 'Midjourney v8 Inpaint', reason: '생성된 이미지의 자연스러운 부분 수정' } ] },
-                { category: '🔍 Search (검색)', models: [ { name: 'Perplexity AI (GPT-5)', reason: '정확한 출처 기반의 요약 및 답변' }, { name: 'Google AI Search', reason: '실시간 정보와 Gemini 2.0의 결합' }, { name: 'Neeva 2 (fictional)', reason: '광고 없는 개인화 검색 경험' } ] },
-                { category: '🎬 Text-to-Video (비디오 생성)', models: [ { name: 'OpenAI Sora 2', reason: '영화 수준의 영상 품질과 일관성' }, { name: 'Google Veo 2', reason: '영상 스타일 제어 및 편집 용이성' }, { name: 'RunwayML Gen-3', reason: '창의적 영상 효과와 빠른 생성 속도' } ] },
-                { category: '🖼️ Image-to-Video (이미지->비디오)', models: [ { name: 'RunwayML Gen-3', reason: '이미지의 동적 움직임 구현' }, { name: 'Pika Labs 2.0', reason: '다양한 스타일의 애니메이션 효과' }, { name: 'Sora 2', reason: '이미지로부터 일관성 있는 스토리 생성' } ] },
-                { category: '🤖 Copilot (코파일럿)', models: [ { name: 'GitHub Copilot (GPT-5)', reason: '개발 생산성의 혁신' }, { name: 'MS 365 Copilot', reason: '업무 문서 작업 자동화' }, { name: 'Google Workspace AI', reason: '협업 및 이메일 관리 효율화' } ] }
+                { category: '✍️ Text (텍스트 생성)', models: [ { name: 'Gemini 2.5 Pro', reason: '최고의 가성비, 1M 토큰 컨텍스트' }, { name: 'GPT-5', reason: 'PhD 수준의 전문성과 복잡한 추론' }, { name: 'Claude Sonnet 4.5', reason: '뛰어난 톤/스타일 제어, 창의적 글쓰기' } ] },
+                { category: '💻 WebDev (웹 개발)', models: [ { name: 'Claude Sonnet 4.5', reason: 'SWE-bench 최고 점수, 세계 최고의 코딩 모델' }, { name: 'GPT-5', reason: '강력한 코드 생성, 프론트엔드 및 디버깅 개선' }, { name: 'Devstral Medium', reason: '에이전트 코딩 특화, 전체 코드베이스 탐색/편집' } ] },
+                { category: '👁️ Vision (이미지 인식)', models: [ { name: 'Gemini 2.5 Pro', reason: '강력한 네이티브 멀티모달 이해(이미지, 비디오)' }, { name: 'GPT-4o', reason: '우수한 비전 및 오디오 이해 능력' }, { name: 'Claude 4 Sonnet', reason: '다이어그램 및 기술 문서 이해 탁월' } ] },
+                { category: '🎨 Text-to-Image (이미지 생성)', models: [ { name: 'GPT-Image-1', reason: '복잡한 장면 이해 및 이미지 내 텍스트 생성' }, { name: 'Seedream 3.0', reason: '사진 사실성 및 텍스트 렌더링 1위' }, { name: 'Recraft V3', reason: '벡터 생성 특화(로고, 일러스트레이션)' } ] },
+                { category: '✂️ Image Edit (이미지 편집)', models: [ { name: 'Nano Banana (Gemini)', reason: '초고속, 사진 사실적 멀티턴 편집' }, { name: 'Adobe Firefly', reason: 'Photoshop 통합 및 전문가용 편집 기능' }, { name: 'Luminar Neo', reason: '인물 사진 향상 및 직관적 인터페이스' } ] },
+                { category: '🔍 Search (AI 검색)', models: [ { name: 'ChatGPT Search', reason: '신뢰할 수 있는 출처 기반의 대화형 검색' }, { name: 'Google AI Mode', reason: '실시간 정보 및 검증된 인용' }, { name: 'Perplexity AI', reason: '뛰어난 소싱 및 맞춤형 연구 지원' } ] },
+                { category: '🎬 Text-to-Video (비디오 생성)', models: [ { name: 'Veo 3 (Google)', reason: '최첨단 품질 및 네이티브 오디오 통합' }, { name: 'Sora 2 (OpenAI)', reason: '동기화된 오디오 및 물리적 사실성 개선' }, { name: 'PixVerse V5', reason: '빠른 생성 속도와 영화 같은 비주얼' } ] },
+                { category: '🖼️ Image-to-Video (이미지->비디오)', models: [ { name: 'Seedance Pro', reason: '높은 품질의 역동적인 장면 생성' }, { name: 'Kling 2.5 Turbo', reason: '강력한 프롬프트 준수 및 물리 인식 모션' }, { name: 'PixVerse v5', reason: '부드럽고 표현력 있는 모션, 시간적 일관성' } ] },
+                { category: '🤖 Copilot (코파일럿)', models: [ { name: 'Claude Code', reason: '에이전트 협업, 멀티파일 편집 제안' }, { name: 'GitHub Copilot', reason: '업계 표준, VSCode 완벽 통합' }, { name: 'Cursor', reason: 'AI 우선 IDE, 강력한 코드베이스 인식' } ] }
             ];
             
             const radarChartData = {
                 labels: ['추론', '창의성', '코딩', '비전', '안전성', '속도'],
                 datasets: [{
                     label: 'GPT-5',
-                    data: [9.8, 9.5, 9.2, 9.0, 8.5, 8.8],
+                    data: [9.8, 9.6, 9.5, 9.2, 8.8, 9.0],
                     borderColor: 'rgba(239, 68, 68, 1)',
                     backgroundColor: 'rgba(239, 68, 68, 0.2)',
                     pointBackgroundColor: 'rgba(239, 68, 68, 1)',
                     pointBorderColor: '#fff'
                 }, {
-                    label: 'Gemini 2.0 Ultra',
-                    data: [9.2, 8.8, 8.9, 9.7, 9.0, 9.5],
+                    label: 'Gemini 2.5 Pro',
+                    data: [9.5, 9.0, 9.2, 9.8, 9.2, 9.5],
                     borderColor: 'rgba(59, 130, 246, 1)',
                     backgroundColor: 'rgba(59, 130, 246, 0.2)',
                     pointBackgroundColor: 'rgba(59, 130, 246, 1)',
                     pointBorderColor: '#fff'
                 }, {
-                    label: 'Claude 4 Opus',
-                    data: [8.9, 9.2, 8.5, 8.8, 9.8, 8.5],
+                    label: 'Claude Sonnet 4.5',
+                    data: [9.0, 9.2, 9.9, 8.8, 9.7, 8.8],
                     borderColor: 'rgba(245, 158, 11, 1)',
                     backgroundColor: 'rgba(245, 158, 11, 0.2)',
                     pointBackgroundColor: 'rgba(245, 158, 11, 1)',
@@ -158,15 +186,20 @@
 
             function renderTimeline(filter = 'all') {
                 timelineContainer.innerHTML = '';
-                const filteredData = (filter === 'all') ? timelineData : timelineData.filter(item => item.company === filter || (filter === 'China' && item.company === 'China'));
+                const filteredData = (filter === 'all') ? timelineData : timelineData.filter(item => item.company === filter);
                 
                 filteredData.forEach(item => {
                     const div = document.createElement('div');
                     div.className = 'timeline-item relative mb-8';
+                    let companyName = item.company;
+                    if(item.model.includes('DeepSeek') || item.model.includes('Qwen')) {
+                        companyName = item.model.split('-')[0].split(' ')[0];
+                    }
+
                     div.innerHTML = `
                         <div class="ml-8 p-6 bg-white rounded-lg shadow-md hover:shadow-xl transition-shadow duration-300">
                             <span class="text-sm font-semibold text-sky-500">${item.date}</span>
-                            <h3 class="text-xl font-bold mt-1 text-slate-900">${item.model} <span class="text-sm font-medium text-slate-500">by ${item.company}</span></h3>
+                            <h3 class="text-xl font-bold mt-1 text-slate-900">${item.model} <span class="text-sm font-medium text-slate-500">by ${companyName}</span></h3>
                             <p class="mt-2 text-slate-600">${item.description}</p>
                         </div>
                     `;
