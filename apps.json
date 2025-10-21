@@ -1,0 +1,134 @@
+{
+  "apps": [
+    {
+      "id": 1,
+      "name": "자리 바꾸기",
+      "category": "학교 생활 도구",
+      "description": "학생들의 자리를 공정하고 효율적으로 재배치합니다.",
+      "url": "https://0115seed-sketch.github.io/first-html/seatchange.html",
+      "icon": "fas fa-chair",
+      "visible": true,
+      "order": 1
+    },
+    {
+      "id": 2,
+      "name": "AI 행특 도우미",
+      "category": "학교 생활 도구",
+      "description": "행동특성 및 종합의견 작성을 도와줍니다.",
+      "url": "https://hthelper-public.web.app/",
+      "icon": "fas fa-robot",
+      "visible": true,
+      "order": 2
+    },
+    {
+      "id": 3,
+      "name": "우리 학교 급식",
+      "category": "학교 생활 도구",
+      "description": "학교 급식 정보를 확인할 수 있는 서비스입니다.",
+      "url": "https://meal-app-45e91.web.app/",
+      "icon": "fas fa-utensils",
+      "visible": true,
+      "order": 3
+    },
+    {
+      "id": 4,
+      "name": "청소 당번 배정",
+      "category": "학교 생활 도구",
+      "description": "간단하게 청소 당번을 배정하는 프로그램입니다.",
+      "url": "https://0115seed-sketch.github.io/first-html/clean.html",
+      "icon": "fas fa-broom",
+      "visible": true,
+      "order": 4
+    },
+    {
+      "id": 5,
+      "name": "스포츠클럽 배정",
+      "category": "학교 생활 도구",
+      "description": "스포츠클럽을 직접 또는 랜덤으로 배정합니다.",
+      "url": "https://0115seed-sketch.github.io/first-html/배정.html",
+      "icon": "fas fa-futbol",
+      "visible": true,
+      "order": 5
+    },
+    {
+      "id": 6,
+      "name": "모둠 점수판",
+      "category": "수업 도구",
+      "description": "모둠활동할 때 점수를 기록하고 관리하는 도구입니다.",
+      "url": "https://0115seed-sketch.github.io/first-html/모둠.html",
+      "icon": "fas fa-star",
+      "visible": true,
+      "order": 6
+    },
+    {
+      "id": 7,
+      "name": "돌림판",
+      "category": "수업 도구",
+      "description": "항목을 추첨할 수 있는 도구입니다.",
+      "url": "https://0115seed-sketch.github.io/first-html/돌림판.html",
+      "icon": "fas fa-bullseye",
+      "visible": true,
+      "order": 7
+    },
+    {
+      "id": 8,
+      "name": "발표벨",
+      "category": "수업 도구",
+      "description": "발표자를 인식하는 발표벨입니다.",
+      "url": "https://0115seed-sketch.github.io/first-html/발표벨.html",
+      "icon": "fas fa-bell",
+      "visible": true,
+      "order": 8
+    },
+    {
+      "id": 9,
+      "name": "소수 찾기 게임",
+      "category": "흥미로운 앱",
+      "description": "자연수 중에서 소수를 찾는 게임입니다.",
+      "url": "https://0115seed-sketch.github.io/first-html/소수 찾기 게임.html",
+      "icon": "fas fa-calculator",
+      "visible": true,
+      "order": 9
+    },
+    {
+      "id": 10,
+      "name": "사진 투표",
+      "category": "흥미로운 앱",
+      "description": "사진을 보고 투표해 통계내는 앱입니다.",
+      "url": "https://0115seed-sketch.github.io/first-html/사진선택.html",
+      "icon": "fas fa-image",
+      "visible": true,
+      "order": 10
+    },
+    {
+      "id": 11,
+      "name": "로또 번호 확인",
+      "category": "흥미로운 앱",
+      "description": "로또 당첨 번호를 확인하고 번호를 생성하는 앱입니다.",
+      "url": "https://0115seed-sketch.github.io/first-html/로또확인.html",
+      "icon": "fas fa-dice",
+      "visible": true,
+      "order": 11
+    },
+    {
+      "id": 12,
+      "name": "네이버 부동산 수집기",
+      "category": "흥미로운 앱",
+      "description": "네이버 부동산 매물 정보를 클릭 한 번으로 엑셀 파일로 다운로드합니다.",
+      "url": "https://github.com/0115seed-sketch/naver-real-estate-scraper",
+      "icon": "fas fa-home",
+      "visible": true,
+      "order": 12
+    },
+    {
+      "id": 13,
+      "name": "AI 타임라인",
+      "category": "흥미로운 앱",
+      "description": "2025년 최신 AI 모델의 발전사와 분야별 최고 성능 모델을 한눈에 확인하세요.",
+      "url": "https://0115seed-sketch.github.io/first-html/AI타임라인.html",
+      "icon": "fas fa-brain",
+      "visible": true,
+      "order": 13
+    }
+  ]
+}
