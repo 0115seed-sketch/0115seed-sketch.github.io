@@ -81,13 +81,13 @@
       "order": 8
     },
     {
+      "id": 14,
       "name": "역사 속 인물 매칭",
       "category": "흥미로운 앱",
       "description": "다섯 가지 질문을 통해, 당신과 닮은 역사 속 인물을 찾아보세요.",
-      "url": "http://0115seed-sketch.github.io/first-html /역사인물찾기.html",
+      "url": "https://0115seed-sketch.github.io/first-html/역사인물찾기.html",
       "icon": "fas fa-book",
       "visible": true,
-      "id": 14,
       "order": 9
     },
     {

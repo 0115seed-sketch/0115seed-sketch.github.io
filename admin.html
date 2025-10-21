@@ -692,6 +692,8 @@ git push</pre>
             if (app) {
                 app.visible = !app.visible;
                 updateStats();
+                // 테이블 전체를 다시 그리지 않고 해당 행만 업데이트
+                console.log(`앱 "${app.name}" 표시 상태: ${app.visible ? '표시' : '숨김'}`);
             }
         }
 
