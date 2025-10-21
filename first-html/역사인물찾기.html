@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>역사 속 인물 찾기 AI</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Gowun+Batang:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Gowun Batang', serif;
+            background: linear-gradient(135deg, #e8dcc4 0%, #d4c5a9 100%);
+            background-attachment: fixed;
+            position: relative;
+        }
+        /* 종이 질감 레이어 - 강화 */
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-image: 
+                url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200"><filter id="noise"><feTurbulence type="fractalNoise" baseFrequency="1.2" numOctaves="6" stitchTiles="stitch"/><feColorMatrix type="saturate" values="0"/></filter><rect width="100%" height="100%" filter="url(%23noise)" opacity="0.35"/></svg>'),
+                url('https://www.transparenttextures.com/patterns/old-paper.png');
+            background-blend-mode: multiply;
+            opacity: 0.8;
+            pointer-events: none;
+            z-index: 0;
+        }
+        .card {
+            position: relative;
+            background: linear-gradient(to bottom, #faf7f0 0%, #f5f0e5 100%);
+            border: 3px solid #b8a788;
+            box-shadow: 
+                0 4px 6px rgba(0,0,0,0.1),
+                0 8px 20px rgba(139, 69, 19, 0.15);
+        }
+        /* 카드 종이 질감 강화 */
+        .card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            border-radius: inherit;
+            background-image: 
+                url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200"><filter id="cardnoise"><feTurbulence type="fractalNoise" baseFrequency="1.5" numOctaves="5" stitchTiles="stitch"/><feColorMatrix type="saturate" values="0"/></filter><rect width="100%" height="100%" filter="url(%23cardnoise)" opacity="0.25"/></svg>');
+            opacity: 0.6;
+            pointer-events: none;
+        }
+        .btn-primary {
+            background: linear-gradient(to bottom, #8b4513 0%, #6a360f 100%);
+            color: #fdf6e3;
+            border: 2px solid #5a2a0a;
+            box-shadow: 0 3px 6px rgba(0,0,0,0.2);
+            text-shadow: 0 1px 2px rgba(0,0,0,0.3);
+            min-height: 48px; /* 모바일 터치 영역 확보 */
+        }
+        .btn-primary:hover {
+            background: linear-gradient(to bottom, #6a360f 0%, #5a2a0a 100%);
+            box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+        }
+        .btn-primary:active {
+            transform: translateY(1px);
+            box-shadow: 0 1px 2px rgba(0,0,0,0.2);
+        }
+        .btn-answer {
+            background: linear-gradient(to bottom, #faf7f0 0%, #f5f0e5 100%);
+            border: 2px solid #c4b5a0;
+            color: #4a3728;
+            text-align: left;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.08);
+            min-height: 52px; /* 모바일 터치 영역 충분히 확보 */
+            transition: all 0.2s ease;
+        }
+        .btn-answer:hover {
+            background: linear-gradient(to bottom, #f5f0e5 0%, #ebe5d8 100%);
+            border-color: #8b4513;
+            box-shadow: 0 3px 8px rgba(139, 69, 19, 0.2);
+            transform: translateY(-1px);
+        }
+        .btn-answer:active {
+            transform: translateY(0);
+            box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+        }
+        .btn-secondary {
+            background: linear-gradient(to bottom, rgba(255,255,255,0.3) 0%, rgba(255,255,255,0.1) 100%);
+            border: 2px solid #8b4513;
+            color: #6a360f;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            min-height: 44px;
+            font-weight: 600;
+        }
+        .btn-secondary:hover {
+            background: linear-gradient(to bottom, rgba(139, 69, 19, 0.1) 0%, rgba(139, 69, 19, 0.15) 100%);
+            border-color: #6a360f;
+            box-shadow: 0 3px 6px rgba(0,0,0,0.15);
+        }
+        /* 결과 카드 스타일 강화 */
+        .result-card {
+            background: linear-gradient(to bottom, #fdfbf7 0%, #f8f4ed 100%);
+            border: 3px solid #b8a788;
+            box-shadow: 
+                0 4px 8px rgba(0,0,0,0.12),
+                0 6px 15px rgba(139, 69, 19, 0.1);
+            position: relative;
+        }
+        /* 결과 카드 종이 질감 */
+        .result-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            border-radius: inherit;
+            background-image: 
+                url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200"><filter id="resultnoise"><feTurbulence type="fractalNoise" baseFrequency="1.5" numOctaves="5" stitchTiles="stitch"/><feColorMatrix type="saturate" values="0"/></filter><rect width="100%" height="100%" filter="url(%23resultnoise)" opacity="0.25"/></svg>');
+            opacity: 0.6;
+            pointer-events: none;
+        }
+
+        .fade-in { animation: fadeIn 0.5s ease-in-out; }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        /* 모바일 최적화 */
+        @media (max-width: 768px) {
+            .btn-answer {
+                padding: 1rem;
+                line-height: 1.4;
+            }
+        }
+    </style>
+</head>
+<body class="text-stone-800 flex items-center justify-center min-h-screen p-4">
+
+    <div class="w-full max-w-2xl mx-auto card rounded-lg shadow-xl p-6 md:p-8 transition-all duration-500">
+        <!-- 시작 화면 -->
+        <div id="start-container" class="text-center">
+            <h1 class="text-3xl md:text-4xl font-bold text-stone-900 mb-4" style="letter-spacing: -1px;">역사 속, 당신의 모습은?</h1>
+            <p class="text-stone-700 mb-8 text-base md:text-lg">다섯 가지 질문을 통해, 당신과 닮은 역사 속 인물을 찾아보세요.</p>
+            <button onclick="startQuiz()" class="btn-answer font-bold py-3 px-6 text-base md:text-lg rounded-md transition-transform transform hover:scale-105" style="text-align: center;">
+                시작하기
+            </button>
+        </div>
+
+        <!-- 퀴즈 화면 -->
+        <div id="quiz-container" class="hidden">
+            <div class="mb-6">
+                <p id="progress-text" class="text-sm font-semibold text-stone-600 text-center"></p>
+                <div class="w-full bg-stone-200 rounded-full h-2 mt-1">
+                    <div id="progress-bar" class="bg-stone-600 h-2 rounded-full transition-all duration-300" style="width: 0%"></div>
+                </div>
+            </div>
+            <h2 id="question-text" class="text-xl md:text-2xl font-bold text-stone-900 mb-6 text-center leading-relaxed"></h2>
+            <div id="answers-container" class="grid grid-cols-1 gap-3"></div>
+        </div>
+        
+        <!-- 로딩 화면 -->
+        <div id="loading-container" class="hidden text-center p-8">
+             <h2 class="text-xl md:text-2xl font-bold text-stone-900 mb-4">역사의 기록을 분석하는 중...</h2>
+             <p class="text-stone-700 mb-6">AI가 당신의 답변을 통해 시대의 정신과 당신의 영혼을 연결하고 있습니다.</p>
+             <div class="flex justify-center items-center">
+                <svg class="animate-spin h-8 w-8 text-stone-700" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+             </div>
+        </div>
+
+        <!-- 결과 화면 -->
+        <div id="result-container" class="hidden text-center">
+            <h2 class="text-2xl md:text-3xl font-bold text-stone-900 mb-4">AI의 분석 결과</h2>
+            
+            <!-- 간단 요약 결과 -->
+            <div id="simple-result" class="fade-in">
+                <p id="result-summary" class="text-stone-700 text-base md:text-lg mb-8 px-2 md:px-4"></p>
+                 <div class="mb-8">
+                    <p class="text-stone-600 text-sm">당신과 닮은 인물들은...</p>
+                    <p class="text-xl md:text-2xl font-bold text-amber-900 mt-2">
+                        <span id="korean-figure-name-simple"></span> & <span id="world-figure-name-simple"></span>
+                    </p>
+                </div>
+                <button id="show-details-btn" class="btn-secondary font-bold py-2 px-6 rounded-md text-base transition-transform transform hover:scale-105">
+                    자세히 보기
+                </button>
+            </div>
+
+            <!-- 상세 분석 결과 (숨김) -->
+            <div id="detailed-result" class="hidden mt-8 text-left">
+                <p id="result-analysis" class="text-stone-700 mb-8 border-t border-b border-stone-300 py-4 leading-relaxed"></p>
+                <div class="grid md:grid-cols-2 gap-6 mb-4">
+                    <div class="result-card p-4 md:p-6 rounded-md">
+                        <h3 class="text-lg md:text-xl font-bold text-stone-900 mb-2">🇰🇷 한국의 인물</h3>
+                        <p id="korean-figure-name" class="text-base md:text-lg font-semibold text-amber-900 mb-3"></p>
+                        <p id="korean-figure-reason" class="text-stone-700 text-sm leading-relaxed"></p>
+                    </div>
+                    <div class="result-card p-4 md:p-6 rounded-md">
+                        <h3 class="text-lg md:text-xl font-bold text-stone-900 mb-2">🌍 세계의 인물</h3>
+                        <p id="world-figure-name" class="text-base md:text-lg font-semibold text-amber-900 mb-3"></p>
+                        <p id="world-figure-reason" class="text-stone-700 text-sm leading-relaxed"></p>
+                    </div>
+                </div>
+            </div>
+
+            <button onclick="resetQuiz()" class="btn-answer font-bold py-3 px-6 text-base md:text-lg rounded-md transition-transform transform hover:scale-105 mt-8" style="text-align: center;">
+                처음으로
+            </button>
+        </div>
+    </div>
+
+<script>
+    // --- 데이터 영역 ---
+    const questions = [
+        { question: "당신 앞에 거대한 위기가 닥쳤습니다. 어떻게 대처하시겠습니까?", answers: ["나의 신념과 원칙을 굳게 지키며, 정면으로 돌파한다.", "한 걸음 물러나 상황을 면밀히 분석하고, 가장 합리적인 해결책을 찾는다.", "신뢰하는 동료들을 모아 의견을 구하고, 함께 힘을 합쳐 위기를 극복한다.", "이 위기가 다른 사람들에게 미칠 고통을 먼저 생각하고, 그들을 보호할 방법을 찾는다."] },
+        { question: "당신이 세상에 단 하나를 남길 수 있다면, 무엇을 남기시겠습니까?", answers: ["모두가 따를 수 있는 위대한 사상이나 법전.", "사람들의 삶을 풍요롭게 할 획기적인 발명품이나 예술 작품.", "미래 세대가 더 나은 세상을 만들 수 있는 지식과 지혜.", "오랫동안 기억될 사랑과 헌신의 이야기."] },
+        { question: "당신은 어떤 방식의 지도자(리더)에 가깝습니까?", answers: ["강력한 카리스마와 비전으로 모두를 이끄는 선구자.", "각자의 재능을 존중하고, 뒤에서 묵묵히 지원하는 조력자.", "명확한 목표와 논리적인 전략으로 조직을 운영하는 관리자.", "모든 구성원의 목소리에 귀 기울이고, 따뜻하게 포용하는 통합가."] },
+        { question: "명백히 불공정한 상황을 목격했을 때, 당신은 어떻게 행동합니까?", answers: ["불의에 분노하며, 희생을 감수하더라도 즉시 바로잡기 위해 나선다.", "상황을 바꿀 수 있는 가장 효과적인 방법을 찾기 위해 조용히 힘을 기른다.", "뜻을 같이하는 사람들을 모아 여론을 형성하고, 점진적인 변화를 꾀한다.", "상처받은 사람들을 위로하고, 그들의 편에 서서 함께 아파한다."] },
+        { question: "훗날, 사람들이 당신을 어떻게 기억하길 바라십니까?", answers: ["시대를 바꾼 위대한 혁명가.", "인류에게 새로운 영감을 준 천재적인 창조자.", "지혜의 등불로 어둠을 밝힌 현자.", "세상을 더 따뜻하게 만든 이타적인 영웅."] }
+    ];
+
+    // --- 상태 변수 및 DOM 참조 ---
+    let currentQuestionIndex = 0, userAnswers = [];
+    const startContainer = document.getElementById('start-container'), quizContainer = document.getElementById('quiz-container'), loadingContainer = document.getElementById('loading-container'), resultContainer = document.getElementById('result-container'), questionText = document.getElementById('question-text'), answersContainer = document.getElementById('answers-container'), progressBar = document.getElementById('progress-bar'), progressText = document.getElementById('progress-text'), showDetailsBtn = document.getElementById('show-details-btn'), detailedResult = document.getElementById('detailed-result');
+
+    // --- 함수 ---
+    function startQuiz() {
+        startContainer.classList.add('hidden');
+        quizContainer.classList.remove('hidden');
+        detailedResult.classList.add('hidden');
+        document.getElementById('simple-result').classList.remove('hidden');
+        showDetailsBtn.textContent = '자세히 보기';
+        currentQuestionIndex = 0; userAnswers = [];
+        showQuestion();
+    }
+
+    function showQuestion() {
+        answersContainer.classList.add('opacity-0');
+        setTimeout(() => {
+            const q = questions[currentQuestionIndex];
+            questionText.textContent = q.question;
+            answersContainer.innerHTML = '';
+            q.answers.forEach(text => {
+                const btn = document.createElement('button');
+                btn.textContent = text;
+                btn.className = "w-full p-3 md:p-4 btn-answer rounded-md transition-all duration-200 text-sm md:text-base";
+                btn.onclick = () => selectAnswer(text);
+                answersContainer.appendChild(btn);
+            });
+            updateProgress();
+            answersContainer.classList.remove('opacity-0');
+        }, 200);
+    }
+    
+    function updateProgress() {
+        const percent = ((currentQuestionIndex) / questions.length) * 100;
+        progressBar.style.width = `${percent}%`;
+        progressText.textContent = `질문 ${currentQuestionIndex + 1} / ${questions.length}`;
+    }
+
+    function selectAnswer(answerText) {
+        userAnswers.push({ question: questions[currentQuestionIndex].question, answer: answerText });
+        currentQuestionIndex++;
+        if (currentQuestionIndex < questions.length) showQuestion();
+        else {
+            progressBar.style.width = '100%';
+            progressText.textContent = `분석 준비 완료`;
+            setTimeout(requestAiAnalysis, 500);
+        }
+    }
+
+    function requestAiAnalysis() {
+        quizContainer.classList.add('hidden');
+        loadingContainer.classList.remove('hidden');
+        getAiAnalysis();
+    }
+    
+    async function getAiAnalysis() {
+        const apiKey = "";
+        const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`;
+
+        const systemPrompt = `당신은 사용자의 심리를 꿰뚫어 보는 역사학자이자 프로파일러입니다. 사용자의 답변을 바탕으로 핵심 가치관, 리더십 스타일, 열망을 분석합니다. 분석 내용을 토대로, 사용자와 가장 닮은 역사적 인물을 한국과 세계에서 각각 한 명씩 추천해야 합니다. 분석 내용을 한 문장으로 요약한 'analysis_summary'와 상세 분석 내용인 'analysis_detail'을 제공해야 합니다. 답변은 반드시 아래의 JSON 형식에 맞춰 한국어로 제공해야 합니다.`;
+        
+        const userQuery = `다음은 제가 5개의 질문에 답한 내용입니다. 저의 성향을 분석하고, 가장 닮은 한국 및 세계 역사 인물을 추천해주세요.\n\n` + userAnswers.map((item, i) => `${i + 1}. 질문: ${item.question}\n   답변: ${item.answer}`).join('\n\n');
+
+        const payload = {
+            contents: [{ parts: [{ text: userQuery }] }],
+            systemInstruction: { parts: [{ text: systemPrompt }] },
+            generationConfig: {
+                responseMimeType: "application/json",
+                responseSchema: {
+                    type: "OBJECT",
+                    properties: {
+                        analysis_summary: { type: "STRING" },
+                        analysis_detail: { type: "STRING" },
+                        korean_figure: { type: "OBJECT", properties: { name: { type: "STRING" }, reason: { type: "STRING" } } },
+                        world_figure: { type: "OBJECT", properties: { name: { type: "STRING" }, reason: { type: "STRING" } } }
+                    }
+                }
+            }
+        };
+
+        try {
+            const response = await fetch(apiUrl, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+            if (!response.ok) throw new Error(`API 요청 실패: ${response.status}`);
+            const result = await response.json();
+            const jsonText = result.candidates[0].content.parts[0].text;
+            showResults(JSON.parse(jsonText));
+        } catch (error) {
+            console.error("API 호출 오류:", error);
+            loadingContainer.classList.add('hidden');
+            resultContainer.classList.remove('hidden');
+            document.getElementById('simple-result').innerHTML = '<p class="text-red-500">AI 분석 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.</p>';
+        }
+    }
+
+    function showResults(data) {
+        loadingContainer.classList.add('hidden');
+        resultContainer.classList.remove('hidden');
+        
+        // 간단 요약 정보 채우기
+        document.getElementById('result-summary').textContent = data.analysis_summary;
+        document.getElementById('korean-figure-name-simple').textContent = data.korean_figure.name;
+        document.getElementById('world-figure-name-simple').textContent = data.world_figure.name;
+        
+        // 상세 정보 채우기
+        document.getElementById('result-analysis').textContent = data.analysis_detail;
+        document.getElementById('korean-figure-name').textContent = data.korean_figure.name;
+        document.getElementById('korean-figure-reason').textContent = data.korean_figure.reason;
+        document.getElementById('world-figure-name').textContent = data.world_figure.name;
+        document.getElementById('world-figure-reason').textContent = data.world_figure.reason;
+    }
+    
+    showDetailsBtn.addEventListener('click', () => {
+        const isHidden = detailedResult.classList.contains('hidden');
+        detailedResult.classList.toggle('hidden');
+        showDetailsBtn.textContent = isHidden ? '숨기기' : '자세히 보기';
+    });
+
+    function resetQuiz() {
+        resultContainer.classList.add('hidden');
+        startContainer.classList.remove('hidden');
+    }
+</script>
+
+</body>
+</html>
+
