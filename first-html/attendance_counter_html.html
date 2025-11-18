@@ -1,0 +1,437 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>출석 카운터</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background-color: #f9fafb;
+            padding: 20px;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+            padding: 30px;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+        }
+
+        h1 {
+            font-size: 24px;
+            color: #1f2937;
+            font-weight: bold;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 10px;
+        }
+
+        button {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.2s;
+        }
+
+        .btn-settings {
+            background-color: #6b7280;
+            color: white;
+        }
+
+        .btn-settings:hover {
+            background-color: #4b5563;
+        }
+
+        .btn-reset {
+            background-color: #ef4444;
+            color: white;
+        }
+
+        .btn-reset:hover {
+            background-color: #dc2626;
+        }
+
+        .btn-cancel {
+            background-color: #d1d5db;
+            color: #374151;
+        }
+
+        .btn-cancel:hover {
+            background-color: #9ca3af;
+        }
+
+        .btn-save {
+            background-color: #3b82f6;
+            color: white;
+        }
+
+        .btn-save:hover {
+            background-color: #2563eb;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 20px;
+        }
+
+        th, td {
+            border: 1px solid #d1d5db;
+            padding: 12px;
+            text-align: center;
+        }
+
+        th {
+            background-color: #f3f4f6;
+            font-weight: 600;
+            color: #374151;
+        }
+
+        tr:hover {
+            background-color: #f9fafb;
+        }
+
+        .count-cell {
+            cursor: pointer;
+            user-select: none;
+            transition: background-color 0.2s;
+        }
+
+        .count-cell:hover {
+            background-color: #dbeafe;
+        }
+
+        .count-number {
+            font-size: 18px;
+            font-weight: 600;
+            color: #2563eb;
+        }
+
+        .info {
+            margin-top: 20px;
+            font-size: 14px;
+            color: #6b7280;
+        }
+
+        .info p {
+            margin-bottom: 5px;
+        }
+
+        /* 모달 스타일 */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .modal.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+            max-width: 800px;
+            width: 100%;
+            max-height: 90vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .modal-header {
+            padding: 24px;
+            border-bottom: 1px solid #e5e7eb;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .modal-header h2 {
+            font-size: 20px;
+            color: #1f2937;
+            font-weight: bold;
+        }
+
+        .close-btn {
+            background: none;
+            border: none;
+            font-size: 24px;
+            color: #6b7280;
+            cursor: pointer;
+            padding: 0;
+            width: 30px;
+            height: 30px;
+        }
+
+        .close-btn:hover {
+            color: #374151;
+        }
+
+        .modal-body {
+            padding: 24px;
+            overflow-y: auto;
+            flex: 1;
+        }
+
+        .modal-info {
+            margin-bottom: 20px;
+            font-size: 14px;
+            color: #6b7280;
+        }
+
+        .modal-info p {
+            margin-bottom: 5px;
+        }
+
+        .modal-info strong {
+            color: #374151;
+        }
+
+        textarea {
+            width: 100%;
+            height: 400px;
+            padding: 16px;
+            border: 1px solid #d1d5db;
+            border-radius: 6px;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            resize: vertical;
+        }
+
+        textarea:focus {
+            outline: none;
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+        }
+
+        .modal-footer {
+            padding: 24px;
+            border-top: 1px solid #e5e7eb;
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>출석 카운터</h1>
+            <div class="button-group">
+                <button class="btn-settings" onclick="openSettings()">
+                    ⚙️ 설정
+                </button>
+                <button class="btn-reset" onclick="resetAll()">
+                    🔄 전체 초기화
+                </button>
+            </div>
+        </div>
+
+        <div style="overflow-x: auto;">
+            <table id="mainTable">
+                <thead>
+                    <tr>
+                        <th>번호</th>
+                        <th>이름</th>
+                        <th>1의 눈</th>
+                        <th>2의 눈</th>
+                        <th>3의 눈</th>
+                        <th>4의 눈</th>
+                        <th>5의 눈</th>
+                        <th>6의 눈</th>
+                    </tr>
+                </thead>
+                <tbody id="tableBody">
+                </tbody>
+            </table>
+        </div>
+
+        <div class="info">
+            <p>💡 숫자 칸을 클릭하면 카운트가 1씩 증가합니다.</p>
+            <p>💡 Shift+클릭하면 카운트가 1씩 감소합니다.</p>
+            <p>💡 설정 버튼을 눌러 학생 명단을 수정할 수 있습니다.</p>
+        </div>
+    </div>
+
+    <!-- 설정 모달 -->
+    <div id="settingsModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>학생 명단 설정</h2>
+                <button class="close-btn" onclick="closeSettings()">×</button>
+            </div>
+            <div class="modal-body">
+                <div class="modal-info">
+                    <p>한 줄에 한 명씩 입력하세요.</p>
+                    <p>형식: <strong>번호 이름</strong> (예: 1 강도하)</p>
+                    <p>번호를 생략하면 자동으로 순서대로 번호가 부여됩니다.</p>
+                </div>
+                <textarea id="studentInput" placeholder="1 학생이름1&#10;2 학생이름2&#10;3 학생이름3&#10;..."></textarea>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-cancel" onclick="closeSettings()">취소</button>
+                <button class="btn-save" onclick="saveSettings()">💾 저장</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 데이터 저장
+        let people = [
+            { id: 1, number: 1, name: '학생이름1' },
+            { id: 2, number: 2, name: '학생이름2' },
+            { id: 3, number: 3, name: '학생이름3' },
+            { id: 4, number: 4, name: '학생이름4' },
+            { id: 5, number: 5, name: '학생이름5' }
+        ];
+
+        let counts = {};
+
+        // 테이블 렌더링
+        function renderTable() {
+            const tbody = document.getElementById('tableBody');
+            tbody.innerHTML = '';
+
+            people.forEach(person => {
+                const tr = document.createElement('tr');
+                
+                // 번호
+                const tdNumber = document.createElement('td');
+                tdNumber.textContent = person.number;
+                tr.appendChild(tdNumber);
+
+                // 이름
+                const tdName = document.createElement('td');
+                tdName.textContent = person.name;
+                tr.appendChild(tdName);
+
+                // 1~6의 눈
+                for (let day = 1; day <= 6; day++) {
+                    const td = document.createElement('td');
+                    td.className = 'count-cell';
+                    td.onclick = (e) => handleClick(e, person.id, day);
+                    
+                    const span = document.createElement('span');
+                    span.className = 'count-number';
+                    const key = `${person.id}-${day}`;
+                    span.textContent = counts[key] || 0;
+                    
+                    td.appendChild(span);
+                    tr.appendChild(td);
+                }
+
+                tbody.appendChild(tr);
+            });
+        }
+
+        // 클릭 핸들러
+        function handleClick(e, id, day) {
+            const key = `${id}-${day}`;
+            if (e.shiftKey) {
+                // Shift+클릭: 감소
+                counts[key] = Math.max((counts[key] || 0) - 1, 0);
+            } else {
+                // 일반 클릭: 증가
+                counts[key] = (counts[key] || 0) + 1;
+            }
+            renderTable();
+        }
+
+        // 전체 초기화
+        function resetAll() {
+            counts = {};
+            renderTable();
+        }
+
+        // 설정 모달 열기
+        function openSettings() {
+            const text = people.map(p => `${p.number} ${p.name}`).join('\n');
+            document.getElementById('studentInput').value = text;
+            document.getElementById('settingsModal').classList.add('active');
+        }
+
+        // 설정 모달 닫기
+        function closeSettings() {
+            document.getElementById('settingsModal').classList.remove('active');
+        }
+
+        // 설정 저장
+        function saveSettings() {
+            const text = document.getElementById('studentInput').value;
+            const lines = text.split('\n').filter(line => line.trim());
+            const newPeople = [];
+
+            lines.forEach((line, index) => {
+                const trimmedLine = line.trim();
+                const match = trimmedLine.match(/^(\d+)\s+(.+)$/);
+
+                if (match) {
+                    const number = parseInt(match[1]);
+                    const name = match[2].trim();
+                    newPeople.push({
+                        id: index + 1,
+                        number: number,
+                        name: name
+                    });
+                } else {
+                    newPeople.push({
+                        id: index + 1,
+                        number: index + 1,
+                        name: trimmedLine
+                    });
+                }
+            });
+
+            if (newPeople.length > 0) {
+                people = newPeople;
+                renderTable();
+            }
+            closeSettings();
+        }
+
+        // 모달 외부 클릭시 닫기
+        document.getElementById('settingsModal').addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeSettings();
+            }
+        });
+
+        // 초기 렌더링
+        renderTable();
+    </script>
+</body>
+</html>
