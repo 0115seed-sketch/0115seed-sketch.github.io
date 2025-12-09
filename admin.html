@@ -261,11 +261,17 @@
             <button class="btn btn-primary" onclick="showCategoryModal()">
                 <i class="fas fa-folder"></i> 카테고리 관리
             </button>
+            <button class="btn btn-success" onclick="saveToGitHub()" id="saveToGitHubBtn">
+                <i class="fas fa-cloud-upload-alt"></i> GitHub에 저장
+            </button>
             <button class="btn btn-success" onclick="uploadJSON()">
                 <i class="fas fa-upload"></i> JSON 파일 업로드
             </button>
             <button class="btn btn-success" onclick="downloadJSON()">
                 <i class="fas fa-download"></i> JSON 다운로드
+            </button>
+            <button class="btn btn-secondary" onclick="showSettingsModal()">
+                <i class="fas fa-cog"></i> 설정
             </button>
             <button class="btn btn-secondary" onclick="toggleHelp()">
                 <i class="fas fa-question-circle"></i> 사용 방법
@@ -296,14 +302,28 @@
 
                 <h3 style="color: #5f6368; font-size: 16px; margin-bottom: 10px; margin-top: 20px;">💾 저장 방법</h3>
                 <ol style="margin-left: 20px;">
-                    <li>모든 수정을 완료한 후 <strong>"JSON 다운로드"</strong> 버튼을 클릭합니다.</li>
-                    <li>다운로드된 <code>apps.json</code> 파일을 프로젝트 폴더에 저장합니다 (기존 파일 덮어쓰기).</li>
-                    <li>Git으로 커밋하고 GitHub에 푸시합니다:
+                    <li><strong>자동 저장 (권장):</strong> "GitHub에 저장" 버튼을 클릭하면 자동으로 커밋됩니다.
+                        <ul style="margin-top: 5px;">
+                            <li>처음 사용 시 "설정" 버튼에서 GitHub 토큰을 등록하세요.</li>
+                            <li>토큰은 브라우저에 안전하게 저장됩니다.</li>
+                        </ul>
+                    </li>
+                    <li><strong>수동 저장:</strong> "JSON 다운로드" 버튼 클릭 후 수동으로 커밋합니다.
                         <pre style="background-color: #f5f5f5; padding: 10px; border-radius: 4px; margin-top: 5px;">git add apps.json
 git commit -m "앱 목록 업데이트"
 git push</pre>
                     </li>
-                    <li>몇 분 후 GitHub Pages에 자동으로 반영됩니다!</li>
+                </ol>
+
+                <h3 style="color: #5f6368; font-size: 16px; margin-bottom: 10px; margin-top: 20px;">🔑 GitHub 토큰 발급</h3>
+                <ol style="margin-left: 20px;">
+                    <li>GitHub.com → Settings → Developer settings → Personal access tokens → Tokens (classic)</li>
+                    <li>"Generate new token (classic)" 클릭</li>
+                    <li>Note: "Apps Manager" 등 적절한 이름 입력</li>
+                    <li>Expiration: 원하는 기간 선택</li>
+                    <li>Scopes: <strong>repo</strong> 체크 (전체 권한 필요)</li>
+                    <li>"Generate token" 클릭 후 토큰 복사</li>
+                    <li>이 페이지의 "설정" 버튼에서 토큰 입력</li>
                 </ol>
 
                 <h3 style="color: #5f6368; font-size: 16px; margin-bottom: 10px; margin-top: 20px;">📤 JSON 업로드</h3>
@@ -341,12 +361,7 @@ git push</pre>
             <form id="appForm">
                 <div class="form-group">
                     <label for="appName">앱 이름 *</label>
-                    <div style="display: flex; gap: 10px;">
-                        <input type="text" id="appName" required style="flex: 1;">
-                        <button type="button" class="btn btn-primary" onclick="generateWithAI()" style="white-space: nowrap;">
-                            <i class="fas fa-magic"></i> AI 추천
-                        </button>
-                    </div>
+                    <input type="text" id="appName" required>
                 </div>
                 <div class="form-group">
                     <label for="appCategory">카테고리 *</label>
@@ -372,9 +387,6 @@ git push</pre>
                             <i class="fas fa-question-circle" style="font-size: 24px; color: #1a73e8;"></i>
                         </div>
                     </div>
-                    <small style="color: #5f6368; margin-top: 5px; display: block;">
-                        AI 추천 버튼을 클릭하면 앱 이름에 맞는 아이콘과 설명을 자동 생성합니다.
-                    </small>
                 </div>
                 <div style="display: flex; gap: 10px; justify-content: flex-end;">
                     <button type="button" class="btn btn-secondary" onclick="closeModal()">취소</button>
@@ -412,93 +424,270 @@ git push</pre>
         </div>
     </div>
 
+    <!-- 설정 모달 -->
+    <div id="settingsModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>GitHub 설정</h2>
+                <button class="close" onclick="closeSettingsModal()">&times;</button>
+            </div>
+            <div style="margin-bottom: 20px;">
+                <div class="form-group">
+                    <label for="githubToken">GitHub Personal Access Token</label>
+                    <input type="password" id="githubToken" placeholder="ghp_xxxxxxxxxxxxxxxxxxxx" 
+                        style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 4px; font-size: 14px;">
+                    <small style="color: #5f6368; margin-top: 5px; display: block;">
+                        토큰은 브라우저의 localStorage에 저장됩니다. 
+                        <a href="https://github.com/settings/tokens" target="_blank" style="color: #1a73e8;">토큰 발급 바로가기</a>
+                    </small>
+                </div>
+                <div class="form-group">
+                    <label for="githubOwner">Repository Owner</label>
+                    <input type="text" id="githubOwner" value="0115seed-sketch" 
+                        style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 4px; font-size: 14px;">
+                </div>
+                <div class="form-group">
+                    <label for="githubRepo">Repository Name</label>
+                    <input type="text" id="githubRepo" value="0115seed-sketch.github.io" 
+                        style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 4px; font-size: 14px;">
+                </div>
+                <div class="form-group">
+                    <label for="githubBranch">Branch</label>
+                    <input type="text" id="githubBranch" value="main" 
+                        style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 4px; font-size: 14px;">
+                </div>
+            </div>
+            <div style="display: flex; gap: 10px; justify-content: flex-end;">
+                <button class="btn btn-secondary" onclick="closeSettingsModal()">취소</button>
+                <button class="btn btn-danger" onclick="clearSettings()">
+                    <i class="fas fa-trash"></i> 설정 삭제
+                </button>
+                <button class="btn btn-primary" onclick="saveSettings()">
+                    <i class="fas fa-save"></i> 저장
+                </button>
+            </div>
+        </div>
+    </div>
+
     <script>
         let apps = [];
         let categories = [];
         let editingId = null;
+        let githubConfig = {
+            token: '',
+            owner: '0115seed-sketch',
+            repo: '0115seed-sketch.github.io',
+            branch: 'main'
+        };
 
-        // FontAwesome 아이콘 목록
+        // FontAwesome 아이콘 목록 (확장됨)
         const iconList = [
-            { name: '의자', icon: 'fas fa-chair' },
-            { name: '로봇/AI', icon: 'fas fa-robot' },
-            { name: '식사/급식', icon: 'fas fa-utensils' },
-            { name: '청소/빗자루', icon: 'fas fa-broom' },
-            { name: '축구공/스포츠', icon: 'fas fa-futbol' },
-            { name: '별/점수', icon: 'fas fa-star' },
-            { name: '과녁/돌림판', icon: 'fas fa-bullseye' },
-            { name: '벨/알림', icon: 'fas fa-bell' },
-            { name: '계산기', icon: 'fas fa-calculator' },
-            { name: '사진/이미지', icon: 'fas fa-image' },
-            { name: '주사위/게임', icon: 'fas fa-dice' },
-            { name: '집/부동산', icon: 'fas fa-home' },
-            { name: '뇌/AI', icon: 'fas fa-brain' },
-            { name: '책/교육', icon: 'fas fa-book' },
-            { name: '연필/쓰기', icon: 'fas fa-pencil-alt' },
-            { name: '달력', icon: 'fas fa-calendar' },
-            { name: '시계', icon: 'fas fa-clock' },
-            { name: '사용자/학생', icon: 'fas fa-user' },
-            { name: '그룹/팀', icon: 'fas fa-users' },
-            { name: '차트/통계', icon: 'fas fa-chart-bar' },
-            { name: '게임패드', icon: 'fas fa-gamepad' },
-            { name: '퍼즐', icon: 'fas fa-puzzle-piece' },
-            { name: '트로피/상', icon: 'fas fa-trophy' },
-            { name: '메달', icon: 'fas fa-medal' },
-            { name: '깃발', icon: 'fas fa-flag' },
-            { name: '하트/좋아요', icon: 'fas fa-heart' },
-            { name: '엄지척', icon: 'fas fa-thumbs-up' },
-            { name: '댓글/채팅', icon: 'fas fa-comment' },
-            { name: '메시지', icon: 'fas fa-envelope' },
-            { name: '지도', icon: 'fas fa-map' },
-            { name: '위치/핀', icon: 'fas fa-map-marker-alt' },
-            { name: '카메라', icon: 'fas fa-camera' },
-            { name: '비디오', icon: 'fas fa-video' },
-            { name: '음악', icon: 'fas fa-music' },
-            { name: '마이크', icon: 'fas fa-microphone' },
-            { name: '설정/톱니바퀴', icon: 'fas fa-cog' },
-            { name: '검색', icon: 'fas fa-search' },
-            { name: '필터', icon: 'fas fa-filter' },
-            { name: '다운로드', icon: 'fas fa-download' },
-            { name: '업로드', icon: 'fas fa-upload' },
-            { name: '공유', icon: 'fas fa-share-alt' },
-            { name: '링크', icon: 'fas fa-link' },
-            { name: '클립보드', icon: 'fas fa-clipboard' },
-            { name: '폴더', icon: 'fas fa-folder' },
-            { name: '파일', icon: 'fas fa-file' },
-            { name: '태그', icon: 'fas fa-tag' },
-            { name: '북마크', icon: 'fas fa-bookmark' },
-            { name: '전구/아이디어', icon: 'fas fa-lightbulb' },
-            { name: '마법봉', icon: 'fas fa-magic' },
-            { name: '로켓', icon: 'fas fa-rocket' },
-            { name: '구름', icon: 'fas fa-cloud' },
-            { name: '번개', icon: 'fas fa-bolt' },
-            { name: '불/화재', icon: 'fas fa-fire' },
-            { name: '눈송이', icon: 'fas fa-snowflake' },
-            { name: '나무', icon: 'fas fa-tree' },
-            { name: '잎', icon: 'fas fa-leaf' },
-            { name: '꽃', icon: 'fas fa-seedling' },
-            { name: '햄버거', icon: 'fas fa-hamburger' },
-            { name: '커피', icon: 'fas fa-coffee' },
-            { name: '선물', icon: 'fas fa-gift' },
-            { name: '생일케이크', icon: 'fas fa-birthday-cake' },
-            { name: '자전거', icon: 'fas fa-bicycle' },
-            { name: '자동차', icon: 'fas fa-car' },
-            { name: '버스', icon: 'fas fa-bus' },
-            { name: '비행기', icon: 'fas fa-plane' },
-            { name: '배/보트', icon: 'fas fa-ship' },
-            { name: '기차', icon: 'fas fa-train' },
-            { name: '쇼핑카트', icon: 'fas fa-shopping-cart' },
-            { name: '장바구니', icon: 'fas fa-shopping-basket' },
-            { name: '돈/현금', icon: 'fas fa-money-bill' },
-            { name: '동전', icon: 'fas fa-coins' },
-            { name: '신용카드', icon: 'fas fa-credit-card' },
-            { name: '지갑', icon: 'fas fa-wallet' },
-            { name: '질문', icon: 'fas fa-question-circle' },
-            { name: '느낌표/주의', icon: 'fas fa-exclamation-circle' },
-            { name: '정보', icon: 'fas fa-info-circle' },
-            { name: '체크/완료', icon: 'fas fa-check-circle' },
-            { name: 'X/닫기', icon: 'fas fa-times-circle' },
-            { name: '플러스/추가', icon: 'fas fa-plus-circle' },
-            { name: '마이너스/빼기', icon: 'fas fa-minus-circle' }
+            // 학교/교육
+            { name: '📚 책', icon: 'fas fa-book' },
+            { name: '✏️ 연필', icon: 'fas fa-pencil-alt' },
+            { name: '🎓 졸업모자', icon: 'fas fa-graduation-cap' },
+            { name: '🏫 학교', icon: 'fas fa-school' },
+            { name: '📝 노트', icon: 'fas fa-file-alt' },
+            { name: '📖 책펼침', icon: 'fas fa-book-open' },
+            { name: '🖊️ 펜', icon: 'fas fa-pen' },
+            { name: '📐 자/각도기', icon: 'fas fa-drafting-compass' },
+            { name: '🧮 계산기', icon: 'fas fa-calculator' },
+            { name: '🔬 현미경', icon: 'fas fa-microscope' },
+            { name: '🧪 실험', icon: 'fas fa-flask' },
+            { name: '🎨 팔레트/미술', icon: 'fas fa-palette' },
+            { name: '🌍 지구본', icon: 'fas fa-globe' },
+            { name: '🗺️ 지도', icon: 'fas fa-map' },
+            
+            // 학교생활
+            { name: '💺 의자', icon: 'fas fa-chair' },
+            { name: '🍽️ 식사/급식', icon: 'fas fa-utensils' },
+            { name: '🧹 청소/빗자루', icon: 'fas fa-broom' },
+            { name: '⚽ 축구공', icon: 'fas fa-futbol' },
+            { name: '🏀 농구공', icon: 'fas fa-basketball-ball' },
+            { name: '⚾ 야구공', icon: 'fas fa-baseball-ball' },
+            { name: '🏐 배구공', icon: 'fas fa-volleyball-ball' },
+            { name: '🎯 과녁/돌림판', icon: 'fas fa-bullseye' },
+            { name: '🔔 벨/알림', icon: 'fas fa-bell' },
+            { name: '👥 그룹/팀', icon: 'fas fa-users' },
+            { name: '👤 사용자/학생', icon: 'fas fa-user' },
+            { name: '🎒 가방', icon: 'fas fa-shopping-bag' },
+            
+            // 게임/활동
+            { name: '🎮 게임패드', icon: 'fas fa-gamepad' },
+            { name: '🧩 퍼즐', icon: 'fas fa-puzzle-piece' },
+            { name: '🎲 주사위', icon: 'fas fa-dice' },
+            { name: '🏆 트로피', icon: 'fas fa-trophy' },
+            { name: '🥇 메달', icon: 'fas fa-medal' },
+            { name: '🎪 서커스', icon: 'fas fa-hat-wizard' },
+            { name: '🎭 연극', icon: 'fas fa-theater-masks' },
+            { name: '🎬 영화', icon: 'fas fa-film' },
+            { name: '🎵 음악', icon: 'fas fa-music' },
+            { name: '🎤 마이크', icon: 'fas fa-microphone' },
+            { name: '📷 카메라', icon: 'fas fa-camera' },
+            { name: '🎥 비디오', icon: 'fas fa-video' },
+            { name: '🖼️ 사진/이미지', icon: 'fas fa-image' },
+            
+            // 기술/AI
+            { name: '🤖 로봇/AI', icon: 'fas fa-robot' },
+            { name: '🧠 뇌/AI', icon: 'fas fa-brain' },
+            { name: '💻 컴퓨터', icon: 'fas fa-laptop' },
+            { name: '🖥️ 모니터', icon: 'fas fa-desktop' },
+            { name: '⌨️ 키보드', icon: 'fas fa-keyboard' },
+            { name: '🖱️ 마우스', icon: 'fas fa-mouse' },
+            { name: '📱 모바일', icon: 'fas fa-mobile-alt' },
+            { name: '⚙️ 설정', icon: 'fas fa-cog' },
+            { name: '🔧 도구', icon: 'fas fa-wrench' },
+            { name: '🔨 망치', icon: 'fas fa-hammer' },
+            
+            // 통계/차트
+            { name: '📊 막대차트', icon: 'fas fa-chart-bar' },
+            { name: '📈 상승그래프', icon: 'fas fa-chart-line' },
+            { name: '🥧 파이차트', icon: 'fas fa-chart-pie' },
+            { name: '📉 하락그래프', icon: 'fas fa-chart-area' },
+            
+            // 시간/날짜
+            { name: '📅 달력', icon: 'fas fa-calendar' },
+            { name: '🗓️ 달력체크', icon: 'fas fa-calendar-check' },
+            { name: '⏰ 시계', icon: 'fas fa-clock' },
+            { name: '⏱️ 스톱워치', icon: 'fas fa-stopwatch' },
+            { name: '⏳ 모래시계', icon: 'fas fa-hourglass-half' },
+            
+            // 평가/피드백
+            { name: '⭐ 별', icon: 'fas fa-star' },
+            { name: '❤️ 하트', icon: 'fas fa-heart' },
+            { name: '👍 엄지척', icon: 'fas fa-thumbs-up' },
+            { name: '👎 나쁨', icon: 'fas fa-thumbs-down' },
+            { name: '😊 웃음', icon: 'fas fa-smile' },
+            { name: '😢 슬픔', icon: 'fas fa-sad-tear' },
+            { name: '😠 화남', icon: 'fas fa-angry' },
+            { name: '😮 놀람', icon: 'fas fa-surprise' },
+            
+            // 소통/메시지
+            { name: '💬 채팅', icon: 'fas fa-comment' },
+            { name: '💭 말풍선', icon: 'fas fa-comments' },
+            { name: '✉️ 메시지', icon: 'fas fa-envelope' },
+            { name: '📧 이메일', icon: 'fas fa-envelope-open' },
+            { name: '📢 확성기', icon: 'fas fa-bullhorn' },
+            
+            // 아이콘/표시
+            { name: '❓ 질문', icon: 'fas fa-question-circle' },
+            { name: '❗ 느낌표', icon: 'fas fa-exclamation-circle' },
+            { name: 'ℹ️ 정보', icon: 'fas fa-info-circle' },
+            { name: '✅ 체크', icon: 'fas fa-check-circle' },
+            { name: '❌ X표시', icon: 'fas fa-times-circle' },
+            { name: '➕ 플러스', icon: 'fas fa-plus-circle' },
+            { name: '➖ 마이너스', icon: 'fas fa-minus-circle' },
+            { name: '🔍 검색', icon: 'fas fa-search' },
+            { name: '🔎 확대', icon: 'fas fa-search-plus' },
+            { name: '🚀 로켓', icon: 'fas fa-rocket' },
+            { name: '💡 전구', icon: 'fas fa-lightbulb' },
+            { name: '🪄 마법봉', icon: 'fas fa-magic' },
+            
+            // 파일/폴더
+            { name: '📁 폴더', icon: 'fas fa-folder' },
+            { name: '📂 폴더열림', icon: 'fas fa-folder-open' },
+            { name: '📄 파일', icon: 'fas fa-file' },
+            { name: '📋 클립보드', icon: 'fas fa-clipboard' },
+            { name: '🏷️ 태그', icon: 'fas fa-tag' },
+            { name: '🔖 북마크', icon: 'fas fa-bookmark' },
+            { name: '📎 클립', icon: 'fas fa-paperclip' },
+            { name: '📌 핀', icon: 'fas fa-thumbtack' },
+            
+            // 액션
+            { name: '⬇️ 다운로드', icon: 'fas fa-download' },
+            { name: '⬆️ 업로드', icon: 'fas fa-upload' },
+            { name: '🔗 링크', icon: 'fas fa-link' },
+            { name: '🔀 공유', icon: 'fas fa-share-alt' },
+            { name: '🔄 새로고침', icon: 'fas fa-sync' },
+            { name: '🗑️ 삭제', icon: 'fas fa-trash' },
+            { name: '✂️ 자르기', icon: 'fas fa-cut' },
+            { name: '📑 복사', icon: 'fas fa-copy' },
+            { name: '📥 받은편지함', icon: 'fas fa-inbox' },
+            { name: '📤 보낸편지함', icon: 'fas fa-paper-plane' },
+            
+            // 자연/날씨
+            { name: '🌳 나무', icon: 'fas fa-tree' },
+            { name: '🍃 잎', icon: 'fas fa-leaf' },
+            { name: '🌱 새싹', icon: 'fas fa-seedling' },
+            { name: '☀️ 태양', icon: 'fas fa-sun' },
+            { name: '🌙 달', icon: 'fas fa-moon' },
+            { name: '⭐ 별', icon: 'fas fa-star' },
+            { name: '☁️ 구름', icon: 'fas fa-cloud' },
+            { name: '⛈️ 번개', icon: 'fas fa-bolt' },
+            { name: '🔥 불', icon: 'fas fa-fire' },
+            { name: '💧 물방울', icon: 'fas fa-tint' },
+            { name: '❄️ 눈송이', icon: 'fas fa-snowflake' },
+            
+            // 교통
+            { name: '🚗 자동차', icon: 'fas fa-car' },
+            { name: '🚌 버스', icon: 'fas fa-bus' },
+            { name: '🚂 기차', icon: 'fas fa-train' },
+            { name: '✈️ 비행기', icon: 'fas fa-plane' },
+            { name: '🚢 배', icon: 'fas fa-ship' },
+            { name: '🚁 헬리콥터', icon: 'fas fa-helicopter' },
+            { name: '🚲 자전거', icon: 'fas fa-bicycle' },
+            { name: '🛴 킥보드', icon: 'fas fa-skating' },
+            
+            // 장소
+            { name: '🏠 집', icon: 'fas fa-home' },
+            { name: '🏢 빌딩', icon: 'fas fa-building' },
+            { name: '🏪 편의점', icon: 'fas fa-store' },
+            { name: '🏥 병원', icon: 'fas fa-hospital' },
+            { name: '⛪ 교회', icon: 'fas fa-church' },
+            { name: '🏛️ 박물관', icon: 'fas fa-landmark' },
+            { name: '📍 위치', icon: 'fas fa-map-marker-alt' },
+            { name: '🚩 깃발', icon: 'fas fa-flag' },
+            
+            // 음식
+            { name: '🍔 햄버거', icon: 'fas fa-hamburger' },
+            { name: '🍕 피자', icon: 'fas fa-pizza-slice' },
+            { name: '☕ 커피', icon: 'fas fa-coffee' },
+            { name: '🍺 맥주', icon: 'fas fa-beer' },
+            { name: '🍎 사과', icon: 'fas fa-apple-alt' },
+            { name: '🥕 당근', icon: 'fas fa-carrot' },
+            { name: '🌶️ 고추', icon: 'fas fa-pepper-hot' },
+            { name: '🧁 컵케이크', icon: 'fas fa-cupcake' },
+            { name: '🎂 케이크', icon: 'fas fa-birthday-cake' },
+            { name: '🍪 쿠키', icon: 'fas fa-cookie' },
+            { name: '🍬 사탕', icon: 'fas fa-candy-cane' },
+            { name: '🧊 얼음', icon: 'fas fa-ice-cream' },
+            
+            // 쇼핑/금융
+            { name: '🛒 쇼핑카트', icon: 'fas fa-shopping-cart' },
+            { name: '🛍️ 장바구니', icon: 'fas fa-shopping-basket' },
+            { name: '💰 돈주머니', icon: 'fas fa-money-bill-wave' },
+            { name: '💵 현금', icon: 'fas fa-money-bill' },
+            { name: '🪙 동전', icon: 'fas fa-coins' },
+            { name: '💳 신용카드', icon: 'fas fa-credit-card' },
+            { name: '👛 지갑', icon: 'fas fa-wallet' },
+            { name: '🎁 선물', icon: 'fas fa-gift' },
+            
+            // 기타
+            { name: '🔑 열쇠', icon: 'fas fa-key' },
+            { name: '🔒 잠금', icon: 'fas fa-lock' },
+            { name: '🔓 열림', icon: 'fas fa-unlock' },
+            { name: '🔐 보안', icon: 'fas fa-lock-open' },
+            { name: '🎯 목표', icon: 'fas fa-crosshairs' },
+            { name: '🧲 자석', icon: 'fas fa-magnet' },
+            { name: '⚡ 에너지', icon: 'fas fa-charging-station' },
+            { name: '🔋 배터리', icon: 'fas fa-battery-full' },
+            { name: '📡 신호', icon: 'fas fa-broadcast-tower' },
+            { name: '🎚️ 슬라이더', icon: 'fas fa-sliders-h' },
+            { name: '🎛️ 조절', icon: 'fas fa-adjust' },
+            { name: '🔬 과학', icon: 'fas fa-atom' },
+            { name: '🧬 DNA', icon: 'fas fa-dna' },
+            { name: '♻️ 재활용', icon: 'fas fa-recycle' },
+            { name: '🎗️ 리본', icon: 'fas fa-ribbon' },
+            { name: '🏅 배지', icon: 'fas fa-award' },
+            { name: '👑 왕관', icon: 'fas fa-crown' },
+            { name: '💎 다이아', icon: 'fas fa-gem' },
+            { name: '🔔 종', icon: 'fas fa-bell' },
+            { name: '🧰 도구상자', icon: 'fas fa-toolbox' },
+            { name: '🎓 교육', icon: 'fas fa-user-graduate' },
+            { name: '👨‍🏫 선생님', icon: 'fas fa-chalkboard-teacher' },
+            { name: '🔢 숫자', icon: 'fas fa-hashtag' },
+            { name: '🔤 알파벳', icon: 'fas fa-font' },
+            { name: '📊 통계', icon: 'fas fa-analytics' }
         ];
 
         // 초기 로드
@@ -513,6 +702,9 @@ git push</pre>
                 populateIconSelect();
                 renderTable();
                 updateStats();
+                
+                // GitHub 설정 로드
+                loadGitHubSettings();
             } catch (error) {
                 console.error('앱 로드 실패:', error);
                 alert('앱 데이터를 불러오는데 실패했습니다.');
@@ -714,109 +906,6 @@ git push</pre>
 
         // 아이콘 선택 변경 이벤트
         document.getElementById('appIcon').addEventListener('change', updateIconPreview);
-        
-        // AI로 설명과 아이콘 생성
-        async function generateWithAI() {
-            const appName = document.getElementById('appName').value.trim();
-            
-            if (!appName) {
-                alert('앱 이름을 먼저 입력해주세요.');
-                return;
-            }
-            
-            // 로딩 표시
-            const btn = event.target.closest('button');
-            const originalHTML = btn.innerHTML;
-            btn.disabled = true;
-            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 생성 중...';
-            
-            try {
-                const apiKey = "AIzaSyBhEJcj7ZI8e6JWvO3367FvcdT-0zA6-8k"; // Gemini API 키
-                const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`;
-
-                // 아이콘 목록을 문자열로 변환
-                const iconListStr = iconList.map(item => `${item.name}: ${item.icon}`).join('\n');
-                
-                const systemPrompt = `당신은 교육용 웹 앱의 메타데이터를 생성하는 전문가입니다.
-사용자가 입력한 앱 이름을 보고, 다음을 생성해주세요:
-
-1. description: 앱의 기능을 설명하는 한 문장 (20-40자, 명확하고 간결하게)
-2. icon: 아래 아이콘 목록에서 가장 적합한 아이콘의 FontAwesome 클래스명
-
-사용 가능한 아이콘 목록:
-${iconListStr}
-
-응답은 반드시 다음 JSON 형식으로만 제공하세요:
-{
-  "description": "앱 설명",
-  "icon": "fas fa-icon-name"
-}`;
-                
-                const payload = {
-                    contents: [{
-                        parts: [{
-                            text: `앱 이름: ${appName}\n\n위 앱의 설명과 적합한 아이콘을 추천해주세요.`
-                        }]
-                    }],
-                    systemInstruction: {
-                        parts: [{ text: systemPrompt }]
-                    },
-                    generationConfig: {
-                        responseMimeType: "application/json",
-                        responseSchema: {
-                            type: "OBJECT",
-                            properties: {
-                                description: { type: "STRING" },
-                                icon: { type: "STRING" }
-                            },
-                            required: ["description", "icon"]
-                        }
-                    }
-                };
-                
-                const response = await fetch(apiUrl, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(payload)
-                });
-                
-                if (!response.ok) {
-                    const errorData = await response.text();
-                    console.error('API 오류 상세:', errorData);
-                    throw new Error(`API 요청 실패: ${response.status} - ${errorData.substring(0, 200)}`);
-                }
-                
-                const result = await response.json();
-                console.log('API 응답:', result);
-                
-                // 응답 구조 확인
-                if (!result.candidates || !result.candidates[0] || !result.candidates[0].content) {
-                    console.error('예상치 못한 응답 구조:', result);
-                    throw new Error('AI 응답 형식이 올바르지 않습니다.');
-                }
-                
-                const jsonText = result.candidates[0].content.parts[0].text;
-                console.log('생성된 JSON:', jsonText);
-                const aiResult = JSON.parse(jsonText);
-                
-                // 결과 적용
-                document.getElementById('appDescription').value = aiResult.description;
-                document.getElementById('appIcon').value = aiResult.icon;
-                updateIconPreview();
-                
-                alert('AI가 설명과 아이콘을 생성했습니다!\n필요시 수정하세요.');
-                
-            } catch (error) {
-                console.error('AI 생성 오류 상세:', error);
-                alert(`AI 생성 중 오류가 발생했습니다.\n\n오류 내용: ${error.message}\n\n브라우저 콘솔(F12)에서 자세한 내용을 확인하세요.`);
-            } finally {
-                btn.disabled = false;
-                btn.innerHTML = originalHTML;
-            }
-        }
-
-        // 앱 이름 입력 시 아이콘 자동 제안 (기존 기능 제거)
-        // document.getElementById('appName').addEventListener('blur', suggestIcon);
 
         // 앱 추가/수정
         document.getElementById('appForm').addEventListener('submit', function(e) {
@@ -962,11 +1051,15 @@ ${iconListStr}
         window.onclick = function(event) {
             const modal = document.getElementById('appModal');
             const categoryModal = document.getElementById('categoryModal');
+            const settingsModal = document.getElementById('settingsModal');
             if (event.target === modal) {
                 closeModal();
             }
             if (event.target === categoryModal) {
                 closeCategoryModal();
+            }
+            if (event.target === settingsModal) {
+                closeSettingsModal();
             }
         }
 
@@ -1079,6 +1172,149 @@ ${iconListStr}
             updateStats();
             renderCategoryList();
             alert(`"${categoryName}" 카테고리가 삭제되었습니다.`);
+        }
+
+        // GitHub 설정 관리
+        function showSettingsModal() {
+            loadGitHubSettings();
+            document.getElementById('settingsModal').style.display = 'block';
+        }
+
+        function closeSettingsModal() {
+            document.getElementById('settingsModal').style.display = 'none';
+        }
+
+        function loadGitHubSettings() {
+            const savedConfig = localStorage.getItem('githubConfig');
+            if (savedConfig) {
+                githubConfig = JSON.parse(savedConfig);
+                document.getElementById('githubToken').value = githubConfig.token || '';
+                document.getElementById('githubOwner').value = githubConfig.owner || '0115seed-sketch';
+                document.getElementById('githubRepo').value = githubConfig.repo || '0115seed-sketch.github.io';
+                document.getElementById('githubBranch').value = githubConfig.branch || 'main';
+            }
+            
+            // 토큰 유무에 따라 버튼 상태 업데이트
+            updateGitHubButtonState();
+        }
+
+        function saveSettings() {
+            githubConfig = {
+                token: document.getElementById('githubToken').value.trim(),
+                owner: document.getElementById('githubOwner').value.trim(),
+                repo: document.getElementById('githubRepo').value.trim(),
+                branch: document.getElementById('githubBranch').value.trim()
+            };
+            
+            if (!githubConfig.token) {
+                alert('GitHub 토큰을 입력하세요.');
+                return;
+            }
+            
+            localStorage.setItem('githubConfig', JSON.stringify(githubConfig));
+            updateGitHubButtonState();
+            closeSettingsModal();
+            alert('설정이 저장되었습니다.');
+        }
+
+        function clearSettings() {
+            if (confirm('저장된 GitHub 설정을 삭제하시겠습니까?')) {
+                localStorage.removeItem('githubConfig');
+                githubConfig = {
+                    token: '',
+                    owner: '0115seed-sketch',
+                    repo: '0115seed-sketch.github.io',
+                    branch: 'main'
+                };
+                document.getElementById('githubToken').value = '';
+                document.getElementById('githubOwner').value = '0115seed-sketch';
+                document.getElementById('githubRepo').value = '0115seed-sketch.github.io';
+                document.getElementById('githubBranch').value = 'main';
+                updateGitHubButtonState();
+                alert('설정이 삭제되었습니다.');
+            }
+        }
+
+        function updateGitHubButtonState() {
+            const btn = document.getElementById('saveToGitHubBtn');
+            if (githubConfig.token) {
+                btn.disabled = false;
+                btn.title = 'GitHub에 변경사항 저장';
+            } else {
+                btn.disabled = true;
+                btn.title = '먼저 설정에서 GitHub 토큰을 등록하세요';
+            }
+        }
+
+        // GitHub에 저장
+        async function saveToGitHub() {
+            if (!githubConfig.token) {
+                alert('GitHub 토큰이 설정되지 않았습니다.\n"설정" 버튼을 클릭하여 토큰을 등록하세요.');
+                return;
+            }
+
+            const commitMessage = prompt('커밋 메시지를 입력하세요:', '앱 목록 업데이트');
+            if (!commitMessage) {
+                return;
+            }
+
+            const btn = document.getElementById('saveToGitHubBtn');
+            const originalHTML = btn.innerHTML;
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 저장 중...';
+
+            try {
+                // 1. 현재 파일의 SHA 가져오기
+                const fileUrl = `https://api.github.com/repos/${githubConfig.owner}/${githubConfig.repo}/contents/apps.json?ref=${githubConfig.branch}`;
+                const fileResponse = await fetch(fileUrl, {
+                    headers: {
+                        'Authorization': `token ${githubConfig.token}`,
+                        'Accept': 'application/vnd.github.v3+json'
+                    }
+                });
+
+                if (!fileResponse.ok) {
+                    throw new Error(`파일 정보 가져오기 실패: ${fileResponse.status} ${fileResponse.statusText}`);
+                }
+
+                const fileData = await fileResponse.json();
+                const currentSha = fileData.sha;
+
+                // 2. 새로운 내용으로 파일 업데이트
+                const content = JSON.stringify({ apps: apps }, null, 2);
+                const encodedContent = btoa(unescape(encodeURIComponent(content))); // UTF-8 안전 인코딩
+
+                const updateResponse = await fetch(fileUrl.split('?')[0], {
+                    method: 'PUT',
+                    headers: {
+                        'Authorization': `token ${githubConfig.token}`,
+                        'Accept': 'application/vnd.github.v3+json',
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        message: commitMessage,
+                        content: encodedContent,
+                        sha: currentSha,
+                        branch: githubConfig.branch
+                    })
+                });
+
+                if (!updateResponse.ok) {
+                    const errorData = await updateResponse.json();
+                    throw new Error(`GitHub 업데이트 실패: ${updateResponse.status} - ${errorData.message || updateResponse.statusText}`);
+                }
+
+                const result = await updateResponse.json();
+                alert(`✅ GitHub에 저장되었습니다!\n\n커밋: ${result.commit.sha.substring(0, 7)}\n메시지: ${commitMessage}\n\n몇 분 후 GitHub Pages에 반영됩니다.`);
+
+            } catch (error) {
+                console.error('GitHub 저장 오류:', error);
+                alert(`❌ GitHub 저장 실패\n\n오류: ${error.message}\n\n토큰 권한을 확인하세요 (repo 권한 필요)`);
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = originalHTML;
+                updateGitHubButtonState();
+            }
         }
 
         // 페이지 로드 시 실행

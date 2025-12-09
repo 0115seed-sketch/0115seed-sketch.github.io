@@ -80,6 +80,46 @@
             margin: 0;
             padding-left: 42px; /* Icon width + margin-right */
         }
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #5f6368;
+        }
+        .loading i {
+            font-size: 2em;
+            color: #1a73e8;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .error-message {
+            text-align: center;
+            padding: 40px;
+            color: #ea4335;
+            background-color: #fce8e6;
+            border-radius: 8px;
+            margin: 20px 0;
+        }
+        .error-message i {
+            font-size: 2em;
+            margin-bottom: 10px;
+        }
+        footer {
+            text-align: center;
+            margin-top: 60px;
+            padding: 20px;
+            color: #5f6368;
+            font-size: 0.9em;
+        }
+        footer a {
+            color: #1a73e8;
+            text-decoration: none;
+        }
+        footer a:hover {
+            text-decoration: underline;
+        }
     </style>
 </head>
 <body>
@@ -89,7 +129,21 @@
             <p>Hwant의 상상이 현실이 되는 공간입니다.</p>
         </header>
 
-        <main id="app-list"></main>
+        <main id="app-list">
+            <div class="loading">
+                <i class="fas fa-spinner"></i>
+                <p>앱 목록을 불러오는 중...</p>
+            </div>
+        </main>
+
+        <footer>
+            <p>© 2025 Hwant. All rights reserved.</p>
+            <p>
+                <a href="https://github.com/0115seed-sketch/0115seed-sketch.github.io" target="_blank">
+                    <i class="fab fa-github"></i> GitHub
+                </a>
+            </p>
+        </footer>
     </div>
 
     <script>
@@ -99,15 +153,40 @@
         async function loadApps() {
             try {
                 const response = await fetch('apps.json');
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
                 const data = await response.json();
+                
                 // visible이 true인 앱만 필터링하고 order로 정렬
                 apps = data.apps
                     .filter(app => app.visible)
                     .sort((a, b) => a.order - b.order);
-                renderApps();
+                
+                if (apps.length === 0) {
+                    document.getElementById('app-list').innerHTML = `
+                        <div style="text-align: center; padding: 40px; color: #5f6368;">
+                            <i class="fas fa-inbox" style="font-size: 3em; margin-bottom: 20px; display: block;"></i>
+                            <p>표시할 앱이 없습니다.</p>
+                        </div>
+                    `;
+                } else {
+                    renderApps();
+                }
             } catch (error) {
                 console.error('앱 데이터 로드 실패:', error);
-                document.getElementById('app-list').innerHTML = '<p style="text-align: center; color: #ea4335;">앱 데이터를 불러오는데 실패했습니다.</p>';
+                document.getElementById('app-list').innerHTML = `
+                    <div class="error-message">
+                        <i class="fas fa-exclamation-triangle"></i>
+                        <p><strong>앱 데이터를 불러오는데 실패했습니다.</strong></p>
+                        <p>오류: ${error.message}</p>
+                        <p style="margin-top: 20px;">
+                            <button onclick="location.reload()" style="padding: 10px 20px; background-color: #1a73e8; color: white; border: none; border-radius: 5px; cursor: pointer;">
+                                <i class="fas fa-redo"></i> 다시 시도
+                            </button>
+                        </p>
+                    </div>
+                `;
             }
         }
 
@@ -115,6 +194,7 @@
             const appList = document.getElementById('app-list');
             appList.innerHTML = '';
 
+            // 카테고리별로 그룹화
             const categories = [...new Set(apps.map(app => app.category))];
 
             categories.forEach(category => {
@@ -126,11 +206,16 @@
                 const cardContainer = document.createElement('div');
                 cardContainer.className = 'card-container';
 
-                apps.filter(app => app.category === category).forEach(app => {
+                // 해당 카테고리의 앱들을 필터링
+                const categoryApps = apps.filter(app => app.category === category);
+                
+                categoryApps.forEach(app => {
                     const card = document.createElement('div');
                     card.className = 'card';
                     card.onclick = () => window.open(app.url, '_blank');
+                    card.setAttribute('title', `${app.name} - 새 탭에서 열기`);
 
+                    // 아이콘 클래스 (기본값: 물음표)
                     const iconClass = app.icon || 'fas fa-question-circle';
 
                     card.innerHTML = `
