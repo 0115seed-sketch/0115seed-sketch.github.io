@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>2025 AI 모델 현황 분석</title>
+    <title>2025년 12월 AI 모델 현황 분석</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet">
@@ -45,8 +45,8 @@
 
     <div class="container mx-auto p-4 md:p-8">
         <header class="text-center mb-8">
-            <h1 class="text-4xl md:text-5xl font-bold text-slate-900">2025 AI 모델 현황 분석</h1>
-            <p class="text-slate-500 mt-2">2025년 10월 20일 기준 최신 AI 동향 보고서</p>
+            <h1 class="text-4xl md:text-5xl font-bold text-slate-900">2025년 12월 AI 모델 현황 분석</h1>
+            <p class="text-slate-500 mt-2">2025년 12월 9일 기준 최신 AI 동향 보고서</p>
         </header>
 
         <nav class="flex justify-center mb-8">
@@ -95,7 +95,7 @@
             <section id="sota-section" class="hidden">
                  <div class="text-center max-w-3xl mx-auto mb-12">
                     <h2 class="text-3xl font-bold mb-2">분야별 최고 AI 모델 (SOTA)</h2>
-                    <p class="text-slate-600">AI 기술은 다양한 분야로 분화하며 각 영역에서 최고의 성능을 보이는 모델들이 등장하고 있습니다. 이 섹션에서는 텍스트 생성부터 이미지, 비디오, 코딩 지원에 이르기까지 9개 핵심 분야에서 현재(2025.10) 가장 뛰어나다고 평가받는 상위 3개 모델을 소개합니다. 또한, 최상위 3개 파운데이션 모델의 종합 성능을 레이더 차트로 시각화하여 그들의 강점과 약점을 한눈에 비교할 수 있습니다.</p>
+                    <p class="text-slate-600">AI 기술은 다양한 분야로 분화하며 각 영역에서 최고의 성능을 보이는 모델들이 등장하고 있습니다. 이 섹션에서는 텍스트 생성부터 이미지, 비디오, 코딩 지원에 이르기까지 9개 핵심 분야에서 현재(2025년 12월) 가장 뛰어나다고 평가받는 상위 3개 모델을 소개합니다. 또한, 최상위 3개 파운데이션 모델의 종합 성능을 레이더 차트로 시각화하여 그들의 강점과 약점을 한눈에 비교할 수 있습니다.</p>
                 </div>
 
                 <div class="mb-12">
@@ -114,12 +114,19 @@
     <script>
         document.addEventListener('DOMContentLoaded', () => {
             const timelineData = [
+                { company: 'Google', date: '2025년 12월', model: 'Gemini 3 Pro Vision', description: 'Google의 비전 AI 프론티어 모델. Gemini 3 시리즈의 비전 특화 버전으로 이미지 및 비디오 이해 능력이 획기적으로 향상되었습니다.' },
+                { company: 'Anthropic', date: '2025년 12월', model: 'Claude for Nonprofits', description: '비영리 단체를 위한 Claude 특별 프로그램 출시. Claude Code가 $1B 마일스톤을 달성하며 Bun 인수를 발표했습니다.' },
+                { company: 'Google', date: '2025년 12월', model: 'Nano Banana Pro', description: 'Gemini 3 Pro 기반의 이미지 생성 모델. 사진 사실적 렌더링과 초고속 멀티턴 편집 기능이 특징입니다.' },
+                { company: 'OpenAI', date: '2025년 12월', model: 'o3 & o4-mini', description: '차세대 추론 모델. o3는 복잡한 문제 해결에 특화되었고, o4-mini는 효율적인 경량 추론 모델입니다.' },
+                { company: 'Anthropic', date: '2025년 11월', model: 'Claude Opus 4.5', description: '세계 최고의 코딩, 에이전트, 컴퓨터 사용 모델. 슬라이드 및 스프레드시트 작업이 대폭 개선되었으며 토큰 효율성이 극적으로 향상되었습니다.' },
+                { company: 'OpenAI', date: '2025년 11월', model: 'GPT-5.1', description: '더 똑똑하고 자연스러운 대화가 가능한 GPT-5의 업그레이드 버전. ChatGPT 쇼핑 리서치 기능도 함께 출시되었습니다.' },
                 { company: 'Microsoft', date: '2025년 10월', model: 'MAI-Image-1', description: 'Microsoft의 첫 자체 개발 이미지 생성 모델. 사진 사실적 이미지 생성에 특화되어 LMArena 톱 10에 데뷔했습니다.' },
-                { company: 'Anthropic', date: '2025년 10월', model: 'Claude Haiku 4.5', description: '더 작고 저렴한 모델로, Claude Sonnet 4 및 GPT-5와 대등한 코딩 성능을 보여주며 SWE-bench Verified 검증을 받았습니다.' },
+                { company: 'Anthropic', date: '2025년 10월', model: 'Claude Haiku 4.5', description: '최첨단 코딩 성능을 유지하면서도 전례 없는 속도와 비용 효율성을 제공하는 경량 모델입니다.' },
+                { company: 'OpenAI', date: '2025년 10월', model: 'ChatGPT Atlas', description: 'ChatGPT에 내장된 브라우저. 웹 탐색과 AI 대화를 하나의 인터페이스에서 통합했습니다.' },
+                { company: 'Anthropic', date: '2025년 9월', model: 'Claude Sonnet 4.5', description: '코딩, 추론, 컴퓨터 사용에서 새로운 벤치마크 기록을 세웠으며 Claude Agent SDK와 함께 출시되었습니다.' },
                 { company: 'China', date: '2025년 9월', model: 'DeepSeek-V3.2-Exp', description: 'DeepSeek Sparse Attention (DSA) 기술을 적용하여 API 가격을 50% 이상 인하했습니다.' },
                 { company: 'xAI', date: '2025년 9월', model: 'Grok 4 Fast', description: 'Grok 4와 유사한 성능을 40% 적은 토큰으로 제공하며, 2M 토큰 컨텍스트와 OpenAI o3 대비 64배 저렴한 비용이 특징입니다.' },
                 { company: 'Google', date: '2025년 9월', model: 'Gemini 2.5 Flash & Flash-Lite (Update)', description: '품질, 속도, 효율성을 개선하여 장기 에이전트 작업에서 15%의 성능 향상을 이루었습니다.' },
-                { company: 'Anthropic', date: '2025년 9월', model: 'Claude Sonnet 4.5', description: '1M 토큰 컨텍스트와 강력한 에이전트 구축 능력으로 현재 세계 최고의 코딩 모델로 평가받습니다.' },
                 { company: 'China', date: '2025년 8월', model: 'DeepSeek-V3.1 (Update)', description: '하이브리드 추론 모드(Think & Non-Think)와 128K 컨텍스트를 지원하며 Anthropic API 형식을 도입했습니다.' },
                 { company: 'OpenAI', date: '2025년 8월', model: 'gpt-oss-20B & 120B', description: 'OpenAI의 첫 오픈 웨이트 모델. 120B 및 20B 파라미터의 MoE 아키텍처를 MIT 라이선스로 공개했습니다.' },
                 { company: 'Anthropic', date: '2025년 8월', model: 'Claude Opus 4.1', description: 'Claude Opus 4의 업그레이드 버전입니다.' },
@@ -144,36 +151,36 @@
             ];
 
             const sotaData = [
-                { category: '✍️ Text (텍스트 생성)', models: [ { name: 'Gemini 2.5 Pro', reason: '최고의 가성비, 1M 토큰 컨텍스트' }, { name: 'GPT-5', reason: 'PhD 수준의 전문성과 복잡한 추론' }, { name: 'Claude Sonnet 4.5', reason: '뛰어난 톤/스타일 제어, 창의적 글쓰기' } ] },
-                { category: '💻 WebDev (웹 개발)', models: [ { name: 'Claude Sonnet 4.5', reason: 'SWE-bench 최고 점수, 세계 최고의 코딩 모델' }, { name: 'GPT-5', reason: '강력한 코드 생성, 프론트엔드 및 디버깅 개선' }, { name: 'Devstral Medium', reason: '에이전트 코딩 특화, 전체 코드베이스 탐색/편집' } ] },
-                { category: '👁️ Vision (이미지 인식)', models: [ { name: 'Gemini 2.5 Pro', reason: '강력한 네이티브 멀티모달 이해(이미지, 비디오)' }, { name: 'GPT-4o', reason: '우수한 비전 및 오디오 이해 능력' }, { name: 'Claude 4 Sonnet', reason: '다이어그램 및 기술 문서 이해 탁월' } ] },
-                { category: '🎨 Text-to-Image (이미지 생성)', models: [ { name: 'GPT-Image-1', reason: '복잡한 장면 이해 및 이미지 내 텍스트 생성' }, { name: 'Seedream 3.0', reason: '사진 사실성 및 텍스트 렌더링 1위' }, { name: 'Recraft V3', reason: '벡터 생성 특화(로고, 일러스트레이션)' } ] },
-                { category: '✂️ Image Edit (이미지 편집)', models: [ { name: 'Nano Banana (Gemini)', reason: '초고속, 사진 사실적 멀티턴 편집' }, { name: 'Adobe Firefly', reason: 'Photoshop 통합 및 전문가용 편집 기능' }, { name: 'Luminar Neo', reason: '인물 사진 향상 및 직관적 인터페이스' } ] },
-                { category: '🔍 Search (AI 검색)', models: [ { name: 'ChatGPT Search', reason: '신뢰할 수 있는 출처 기반의 대화형 검색' }, { name: 'Google AI Mode', reason: '실시간 정보 및 검증된 인용' }, { name: 'Perplexity AI', reason: '뛰어난 소싱 및 맞춤형 연구 지원' } ] },
+                { category: '✍️ Text (텍스트 생성)', models: [ { name: 'GPT-5.1', reason: '자연스러운 대화와 복잡한 추론 능력' }, { name: 'Gemini 3 Pro', reason: '차세대 지능형 모델, 멀티모달 통합' }, { name: 'Claude Opus 4.5', reason: '슬라이드/스프레드시트 작업 특화, 창의적 글쓰기' } ] },
+                { category: '💻 WebDev (웹 개발)', models: [ { name: 'Claude Opus 4.5', reason: '세계 최고의 코딩 모델, 토큰 효율성 극대화' }, { name: 'Claude Sonnet 4.5', reason: 'SWE-bench 신기록, 에이전트 SDK 제공' }, { name: 'GPT-5.1', reason: '강력한 코드 생성, 디버깅 능력 개선' } ] },
+                { category: '👁️ Vision (이미지 인식)', models: [ { name: 'Gemini 3 Pro Vision', reason: '비전 AI의 프론티어, 최고 수준 이미지/비디오 이해' }, { name: 'Claude Opus 4.5', reason: '컴퓨터 사용 및 비전 작업 특화' }, { name: 'GPT-4o', reason: '우수한 비전 및 오디오 이해 능력' } ] },
+                { category: '🎨 Text-to-Image (이미지 생성)', models: [ { name: 'Nano Banana Pro', reason: 'Gemini 3 기반, 사진 사실적 렌더링 최고 수준' }, { name: 'GPT-Image-1', reason: '복잡한 장면 이해 및 이미지 내 텍스트 생성' }, { name: 'Seedream 3.0', reason: '사진 사실성 및 텍스트 렌더링 특화' } ] },
+                { category: '✂️ Image Edit (이미지 편집)', models: [ { name: 'Nano Banana Pro', reason: '초고속 멀티턴 편집, Gemini 3 Pro 통합' }, { name: 'Adobe Firefly', reason: 'Photoshop 통합 및 전문가용 편집 기능' }, { name: 'Luminar Neo', reason: '인물 사진 향상 및 직관적 인터페이스' } ] },
+                { category: '🔍 Search (AI 검색)', models: [ { name: 'ChatGPT Search', reason: '신뢰할 수 있는 출처 기반의 대화형 검색, 쇼핑 리서치' }, { name: 'Google AI Mode', reason: '실시간 정보 및 검증된 인용' }, { name: 'Perplexity AI', reason: '뛰어난 소싱 및 맞춤형 연구 지원' } ] },
                 { category: '🎬 Text-to-Video (비디오 생성)', models: [ { name: 'Veo 3 (Google)', reason: '최첨단 품질 및 네이티브 오디오 통합' }, { name: 'Sora 2 (OpenAI)', reason: '동기화된 오디오 및 물리적 사실성 개선' }, { name: 'PixVerse V5', reason: '빠른 생성 속도와 영화 같은 비주얼' } ] },
                 { category: '🖼️ Image-to-Video (이미지->비디오)', models: [ { name: 'Seedance Pro', reason: '높은 품질의 역동적인 장면 생성' }, { name: 'Kling 2.5 Turbo', reason: '강력한 프롬프트 준수 및 물리 인식 모션' }, { name: 'PixVerse v5', reason: '부드럽고 표현력 있는 모션, 시간적 일관성' } ] },
-                { category: '🤖 Copilot (코파일럿)', models: [ { name: 'Claude Code', reason: '에이전트 협업, 멀티파일 편집 제안' }, { name: 'GitHub Copilot', reason: '업계 표준, VSCode 완벽 통합' }, { name: 'Cursor', reason: 'AI 우선 IDE, 강력한 코드베이스 인식' } ] }
+                { category: '🤖 Copilot (코파일럿)', models: [ { name: 'Claude Code', reason: '$1B 마일스톤 달성, Bun 인수로 성능 강화' }, { name: 'GitHub Copilot', reason: '업계 표준, VSCode 완벽 통합' }, { name: 'Cursor', reason: 'AI 우선 IDE, 강력한 코드베이스 인식' } ] }
             ];
             
             const radarChartData = {
                 labels: ['추론', '창의성', '코딩', '비전', '안전성', '속도'],
                 datasets: [{
-                    label: 'GPT-5',
-                    data: [9.8, 9.6, 9.5, 9.2, 8.8, 9.0],
+                    label: 'GPT-5.1',
+                    data: [9.9, 9.7, 9.5, 9.3, 8.9, 9.2],
                     borderColor: 'rgba(239, 68, 68, 1)',
                     backgroundColor: 'rgba(239, 68, 68, 0.2)',
                     pointBackgroundColor: 'rgba(239, 68, 68, 1)',
                     pointBorderColor: '#fff'
                 }, {
-                    label: 'Gemini 2.5 Pro',
-                    data: [9.5, 9.0, 9.2, 9.8, 9.2, 9.5],
+                    label: 'Gemini 3 Pro',
+                    data: [9.7, 9.3, 9.4, 9.9, 9.4, 9.6],
                     borderColor: 'rgba(59, 130, 246, 1)',
                     backgroundColor: 'rgba(59, 130, 246, 0.2)',
                     pointBackgroundColor: 'rgba(59, 130, 246, 1)',
                     pointBorderColor: '#fff'
                 }, {
-                    label: 'Claude Sonnet 4.5',
-                    data: [9.0, 9.2, 9.9, 8.8, 9.7, 8.8],
+                    label: 'Claude Opus 4.5',
+                    data: [9.3, 9.5, 10.0, 9.1, 9.8, 9.0],
                     borderColor: 'rgba(245, 158, 11, 1)',
                     backgroundColor: 'rgba(245, 158, 11, 0.2)',
                     pointBackgroundColor: 'rgba(245, 158, 11, 1)',
