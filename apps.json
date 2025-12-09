@@ -47,7 +47,7 @@
       "description": "스포츠클럽을 직접 또는 랜덤으로 배정합니다.",
       "url": "https://0115seed-sketch.github.io/first-html/배정.html",
       "icon": "fas fa-futbol",
-      "visible": true,
+      "visible": false,
       "order": 5
     },
     {
@@ -71,13 +71,13 @@
       "order": 7
     },
     {
-      "id": 8,
-      "name": "발표벨",
+      "name": "조작된 동전",
       "category": "수업 도구",
-      "description": "발표자를 인식하는 발표벨입니다.",
-      "url": "https://0115seed-sketch.github.io/first-html/발표벨.html",
-      "icon": "fas fa-bell",
-      "visible": false,
+      "description": "조작된 동전 게임(중2 경우의 수와 확률)",
+      "url": "https://coin-game-d8e7a.web.app/",
+      "icon": "fas fa-sync",
+      "visible": true,
+      "id": 15,
       "order": 8
     },
     {
@@ -139,6 +139,16 @@
       "icon": "fas fa-home",
       "visible": true,
       "order": 14
+    },
+    {
+      "id": 8,
+      "name": "발표벨",
+      "category": "수업 도구",
+      "description": "발표자를 인식하는 발표벨입니다.",
+      "url": "https://0115seed-sketch.github.io/first-html/발표벨.html",
+      "icon": "fas fa-bell",
+      "visible": false,
+      "order": 15
     }
   ]
 }
