@@ -112,7 +112,7 @@
         }
     </style>
 </head>
-<body class="bg-gradient-to-br from-purple-100 via-pink-100 to-blue-100 text-slate-800 flex flex-col items-center justify-center min-h-screen p-4">
+<body class="bg-white text-slate-800 flex flex-col items-center justify-center min-h-screen p-4">
 
     <!-- 당첨 메시지 -->
     <div id="winner-message" class="winner-message">
@@ -144,7 +144,7 @@
                 <div class="pin"></div>
                 <canvas id="wheel" width="600" height="600"></canvas>
             </div>
-            <button id="spin-button" class="w-full max-w-md bg-gradient-to-r from-red-500 to-pink-500 text-white text-3xl font-bold py-6 px-8 rounded-2xl hover:from-red-600 hover:to-pink-600 active:from-red-700 active:to-pink-700 transition-all transform hover:scale-105 active:scale-95 shadow-2xl disabled:from-slate-300 disabled:to-slate-400 disabled:cursor-not-allowed disabled:transform-none">
+            <button id="spin-button" class="w-full max-w-md bg-red-500 text-white text-3xl font-bold py-6 px-8 rounded-2xl hover:bg-red-600 active:bg-red-700 transition-all transform hover:scale-105 active:scale-95 shadow-2xl disabled:bg-slate-300 disabled:cursor-not-allowed disabled:transform-none">
                 돌리기!
             </button>
         </div>
@@ -201,6 +201,50 @@
         let winnerItem = null;
         let popOutAnimationId = null;
         let popOutProgress = 0;
+        let tickInterval = null;
+
+        // Web Audio API 초기화
+        const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+
+        // 틱 소리 재생 함수
+        function playTickSound() {
+            const oscillator = audioContext.createOscillator();
+            const gainNode = audioContext.createGain();
+            
+            oscillator.connect(gainNode);
+            gainNode.connect(audioContext.destination);
+            
+            oscillator.frequency.value = 800;
+            oscillator.type = 'sine';
+            
+            gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+            gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.05);
+            
+            oscillator.start(audioContext.currentTime);
+            oscillator.stop(audioContext.currentTime + 0.05);
+        }
+
+        // 승리 팡파레 소리 재생 함수
+        function playWinSound() {
+            const notes = [523.25, 659.25, 783.99, 1046.50]; // C, E, G, C (higher)
+            notes.forEach((freq, index) => {
+                const oscillator = audioContext.createOscillator();
+                const gainNode = audioContext.createGain();
+                
+                oscillator.connect(gainNode);
+                gainNode.connect(audioContext.destination);
+                
+                oscillator.frequency.value = freq;
+                oscillator.type = 'sine';
+                
+                const startTime = audioContext.currentTime + index * 0.15;
+                gainNode.gain.setValueAtTime(0.3, startTime);
+                gainNode.gain.exponentialRampToValueAtTime(0.01, startTime + 0.3);
+                
+                oscillator.start(startTime);
+                oscillator.stop(startTime + 0.3);
+            });
+        }
 
         const colors = [
             "#f87171", "#fb923c", "#facc15", "#a3e635", "#4ade80", "#34d399",
@@ -366,6 +410,21 @@
             if (popOutAnimationId) cancelAnimationFrame(popOutAnimationId);
             popOutProgress = 0;
 
+            // 틱톡 소리 시작 (점점 느려지는 효과)
+            let tickSpeed = 50; // 시작 속도 (ms)
+            tickInterval = setInterval(() => {
+                playTickSound();
+                tickSpeed *= 1.05; // 점점 느려짐
+                clearInterval(tickInterval);
+                tickInterval = setInterval(() => {
+                    playTickSound();
+                    tickSpeed *= 1.05;
+                    if (tickSpeed > 300) {
+                        clearInterval(tickInterval);
+                    }
+                }, tickSpeed);
+            }, tickSpeed);
+
             const winnerIndexOnWheel = Math.floor(Math.random() * activeItems.length);
             const winner = activeItems[winnerIndexOnWheel];
 
@@ -388,9 +447,18 @@
             }, 10);
 
             canvas.addEventListener('transitionend', () => {
+                // 틱톡 소리 중지
+                if (tickInterval) {
+                    clearInterval(tickInterval);
+                    tickInterval = null;
+                }
+                
                 isSpinning = false;
                 winnerItem = winner;
                 animateWinnerPopOut();
+                
+                // 승리 효과음 재생
+                playWinSound();
                 
                 // 당첨 메시지 표시
                 showWinnerMessage(winner.name);
