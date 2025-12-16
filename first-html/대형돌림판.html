@@ -217,7 +217,7 @@
             oscillator.frequency.value = 800;
             oscillator.type = 'sine';
             
-            gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+            gainNode.gain.setValueAtTime(1.5, audioContext.currentTime);
             gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.05);
             
             oscillator.start(audioContext.currentTime);
@@ -226,23 +226,55 @@
 
         // 승리 팡파레 소리 재생 함수
         function playWinSound() {
-            const notes = [523.25, 659.25, 783.99, 1046.50]; // C, E, G, C (higher)
-            notes.forEach((freq, index) => {
-                const oscillator = audioContext.createOscillator();
-                const gainNode = audioContext.createGain();
+            // 짧고 풍부한 화음 팡파레
+            const chords = [
+                { notes: [523.25, 659.25, 783.99], duration: 0.2 },      // C 메이저 코드
+                { notes: [587.33, 739.99, 880.00], duration: 0.2 },      // D 메이저 코드
+                { notes: [659.25, 830.61, 987.77], duration: 0.3 },      // E 메이저 코드
+                { notes: [523.25, 659.25, 783.99, 1046.50], duration: 0.5 } // C 메이저 코드 (마지막 - 길고 높음)
+            ];
+            
+            let currentTime = 0;
+            chords.forEach((chord, chordIndex) => {
+                chord.notes.forEach((freq, noteIndex) => {
+                    const oscillator = audioContext.createOscillator();
+                    const gainNode = audioContext.createGain();
+                    
+                    oscillator.connect(gainNode);
+                    gainNode.connect(audioContext.destination);
+                    
+                    oscillator.frequency.value = freq;
+                    oscillator.type = 'sine';
+                    
+                    const startTime = audioContext.currentTime + currentTime;
+                    const volume = chordIndex === chords.length - 1 ? 1.2 : 1.0; // 마지막 코드는 더 크게
+                    gainNode.gain.setValueAtTime(volume, startTime);
+                    gainNode.gain.exponentialRampToValueAtTime(0.01, startTime + chord.duration);
+                    
+                    oscillator.start(startTime);
+                    oscillator.stop(startTime + chord.duration);
+                });
                 
-                oscillator.connect(gainNode);
-                gainNode.connect(audioContext.destination);
+                // 트라이앵글 웨이브로 하모니 추가
+                chord.notes.forEach((freq) => {
+                    const oscillator = audioContext.createOscillator();
+                    const gainNode = audioContext.createGain();
+                    
+                    oscillator.connect(gainNode);
+                    gainNode.connect(audioContext.destination);
+                    
+                    oscillator.frequency.value = freq * 2; // 옥타브 위
+                    oscillator.type = 'triangle';
+                    
+                    const startTime = audioContext.currentTime + currentTime;
+                    gainNode.gain.setValueAtTime(0.5, startTime);
+                    gainNode.gain.exponentialRampToValueAtTime(0.01, startTime + chord.duration);
+                    
+                    oscillator.start(startTime);
+                    oscillator.stop(startTime + chord.duration);
+                });
                 
-                oscillator.frequency.value = freq;
-                oscillator.type = 'sine';
-                
-                const startTime = audioContext.currentTime + index * 0.15;
-                gainNode.gain.setValueAtTime(0.3, startTime);
-                gainNode.gain.exponentialRampToValueAtTime(0.01, startTime + 0.3);
-                
-                oscillator.start(startTime);
-                oscillator.stop(startTime + 0.3);
+                currentTime += chord.duration * 0.85;
             });
         }
 
