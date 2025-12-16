@@ -71,6 +71,16 @@
       "order": 7
     },
     {
+      "name": "대형 돌림판",
+      "category": "수업 도구",
+      "description": "항목을 추첨할 수 있는 대형 돌림판입니다.",
+      "url": "https://0115seed-sketch.github.io/first-html/%EB%8C%80%ED%98%95%EB%8F%8C%EB%A6%BC%ED%8C%90.html",
+      "icon": "fas fa-sync",
+      "visible": true,
+      "id": 16,
+      "order": 8
+    },
+    {
       "id": 13,
       "name": "AI 타임라인",
       "category": "흥미로운 앱",
@@ -78,7 +88,7 @@
       "url": "https://0115seed-sketch.github.io/first-html/AI타임라인.html",
       "icon": "fas fa-brain",
       "visible": true,
-      "order": 8
+      "order": 9
     },
     {
       "name": "조작된 동전",
@@ -88,7 +98,7 @@
       "icon": "fas fa-coins",
       "visible": true,
       "id": 15,
-      "order": 9
+      "order": 10
     },
     {
       "id": 9,
@@ -97,16 +107,6 @@
       "description": "자연수 중에서 소수를 찾는 게임입니다.",
       "url": "https://0115seed-sketch.github.io/first-html/소수 찾기 게임.html",
       "icon": "fas fa-calculator",
-      "visible": true,
-      "order": 10
-    },
-    {
-      "id": 12,
-      "name": "네이버 부동산 수집기",
-      "category": "흥미로운 앱",
-      "description": "네이버 부동산 매물 정보를 클릭 한 번으로 엑셀 파일로 다운로드합니다.",
-      "url": "https://github.com/0115seed-sketch/naver-real-estate-scraper",
-      "icon": "fas fa-home",
       "visible": true,
       "order": 11
     },
@@ -149,6 +149,16 @@
       "icon": "fas fa-bell",
       "visible": false,
       "order": 15
+    },
+    {
+      "id": 12,
+      "name": "네이버 부동산 수집기",
+      "category": "흥미로운 앱",
+      "description": "네이버 부동산 매물 정보를 클릭 한 번으로 엑셀 파일로 다운로드합니다.",
+      "url": "https://github.com/0115seed-sketch/naver-real-estate-scraper",
+      "icon": "fas fa-home",
+      "visible": true,
+      "order": 16
     }
   ]
 }
