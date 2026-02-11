@@ -159,6 +159,16 @@
       "icon": "fas fa-home",
       "visible": true,
       "order": 16
+    },
+    {
+      "name": "PrimeDrop",
+      "category": "흥미로운 앱",
+      "description": "소수를 먹거나 피해서 캐릭터를 키우는 게임",
+      "url": "https://0115seed-sketch.github.io/game/Prime%20Drop/index.html",
+      "icon": "fas fa-puzzle-piece",
+      "visible": true,
+      "id": 17,
+      "order": 17
     }
   ]
 }
