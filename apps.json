@@ -76,9 +76,19 @@
       "description": "항목을 추첨할 수 있는 대형 돌림판입니다.",
       "url": "https://0115seed-sketch.github.io/first-html/%EB%8C%80%ED%98%95%EB%8F%8C%EB%A6%BC%ED%8C%90.html",
       "icon": "fas fa-sync",
-      "visible": true,
+      "visible": false,
       "id": 16,
       "order": 8
+    },
+    {
+      "id": 8,
+      "name": "발표벨",
+      "category": "수업 도구",
+      "description": "발표자를 인식하는 발표벨입니다.",
+      "url": "https://0115seed-sketch.github.io/first-html/발표벨.html",
+      "icon": "fas fa-bell",
+      "visible": false,
+      "order": 9
     },
     {
       "id": 13,
@@ -88,7 +98,7 @@
       "url": "https://0115seed-sketch.github.io/first-html/AI타임라인.html",
       "icon": "fas fa-brain",
       "visible": true,
-      "order": 9
+      "order": 10
     },
     {
       "name": "조작된 동전",
@@ -98,7 +108,7 @@
       "icon": "fas fa-coins",
       "visible": true,
       "id": 15,
-      "order": 10
+      "order": 11
     },
     {
       "id": 9,
@@ -108,7 +118,7 @@
       "url": "https://0115seed-sketch.github.io/first-html/소수 찾기 게임.html",
       "icon": "fas fa-calculator",
       "visible": true,
-      "order": 11
+      "order": 12
     },
     {
       "id": 10,
@@ -117,8 +127,8 @@
       "description": "사진을 보고 투표해 통계내는 앱입니다.",
       "url": "https://0115seed-sketch.github.io/first-html/사진선택.html",
       "icon": "fas fa-image",
-      "visible": true,
-      "order": 12
+      "visible": false,
+      "order": 13
     },
     {
       "id": 11,
@@ -127,8 +137,8 @@
       "description": "로또 당첨 번호를 확인하고 번호를 생성하는 앱입니다.",
       "url": "https://0115seed-sketch.github.io/first-html/로또확인.html",
       "icon": "fas fa-dice",
-      "visible": true,
-      "order": 13
+      "visible": false,
+      "order": 14
     },
     {
       "id": 14,
@@ -137,16 +147,6 @@
       "description": "다섯 가지 질문을 통해, 당신과 닮은 역사 속 인물을 찾아보세요.",
       "url": "https://0115seed-sketch.github.io/first-html/역사인물찾기.html",
       "icon": "fas fa-book",
-      "visible": false,
-      "order": 14
-    },
-    {
-      "id": 8,
-      "name": "발표벨",
-      "category": "수업 도구",
-      "description": "발표자를 인식하는 발표벨입니다.",
-      "url": "https://0115seed-sketch.github.io/first-html/발표벨.html",
-      "icon": "fas fa-bell",
       "visible": false,
       "order": 15
     },
@@ -157,7 +157,7 @@
       "description": "네이버 부동산 매물 정보를 클릭 한 번으로 엑셀 파일로 다운로드합니다.",
       "url": "https://github.com/0115seed-sketch/naver-real-estate-scraper",
       "icon": "fas fa-home",
-      "visible": true,
+      "visible": false,
       "order": 16
     },
     {
