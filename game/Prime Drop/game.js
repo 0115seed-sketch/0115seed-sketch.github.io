@@ -53,6 +53,7 @@ let pulseDuration = 0;
 let toastTimer;
 let resizeRaf;
 let resizeDebounceTimer;
+const primeBodies = new Set();
 
 const cutePalettes = {
   player: {
@@ -92,7 +93,7 @@ function resizeCanvas() {
   canvas.style.height = `${GAME_HEIGHT}px`;
   canvas.style.transform = `translate(-50%, -50%) scale(${safeScale})`;
 
-  const ratio = window.devicePixelRatio || 1;
+  const ratio = Math.min(window.devicePixelRatio || 1, 1.5);
   canvas.width = GAME_WIDTH * ratio;
   canvas.height = GAME_HEIGHT * ratio;
   playerBaseY = GAME_HEIGHT - 110;
@@ -152,6 +153,7 @@ function setupWorld() {
     Runner.stop(runner);
   }
   Composite.clear(world, false);
+  primeBodies.clear();
 
   render = Render.create({
     canvas,
@@ -207,7 +209,12 @@ function drawLabels() {
   const ratio = render.options.pixelRatio || window.devicePixelRatio || 1;
   ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
 
-  const bodies = Composite.allBodies(world);
+  const bodies = [];
+  if (player) {
+    bodies.push(player);
+  }
+  primeBodies.forEach((body) => bodies.push(body));
+
   bodies.forEach((body) => {
     if (body.plugin && body.plugin.kind) {
       drawCuteBall(ctx, body);
@@ -368,16 +375,14 @@ function handleSpawns(event) {
   Body.setVelocity(body, { x: Common.random(-0.4, 0.4), y: 1.2 * dropSpeedScale });
 
   World.add(world, body);
+  primeBodies.add(body);
 }
 
 function cleanupOffscreen() {
-  const bodies = Composite.allBodies(world);
-  bodies.forEach((body) => {
-    if (body === ground || body === player) {
-      return;
-    }
+  primeBodies.forEach((body) => {
     if (body.position.y > GAME_HEIGHT + 120) {
       World.remove(world, body);
+      primeBodies.delete(body);
     }
   });
 }
@@ -397,6 +402,7 @@ function handleCollision(event) {
     const other = primeBody === pair.bodyA ? pair.bodyB : pair.bodyA;
     if (other === ground) {
       World.remove(world, primeBody);
+      primeBodies.delete(primeBody);
       return;
     }
     if (other !== player) {
@@ -419,6 +425,7 @@ function handleCollision(event) {
       triggerShake();
     }
     World.remove(world, primeBody);
+    primeBodies.delete(primeBody);
 
     if (currentXValue >= 1000) {
       endGame(true);
@@ -511,10 +518,10 @@ function updateParticles(event) {
 }
 
 function updatePrimeMotion(event) {
-  Composite.allBodies(world).forEach((body) => {
-    if (!body.plugin || !body.plugin.primeValue) {
-      return;
-    }
+  if (!gameActive || isPaused) {
+    return;
+  }
+  primeBodies.forEach((body) => {
     const phase = body.plugin.swingPhase || 0;
     const forceX = Math.sin(performance.now() / 1000 * 2.4 + phase) * (0.0008 * dropSpeedScale);
     Body.applyForce(body, body.position, { x: forceX, y: 0 });
@@ -654,11 +661,10 @@ function startGame() {
     timerEl.textContent = formatTime(elapsedMs);
   }
 
-  Composite.allBodies(world).forEach((body) => {
-    if (body !== ground && body !== player) {
-      World.remove(world, body);
-    }
+  primeBodies.forEach((body) => {
+    World.remove(world, body);
   });
+  primeBodies.clear();
 
   homeScreen.classList.remove("active");
   pauseScreen.classList.remove("active");
@@ -702,6 +708,10 @@ function resetToHome() {
   if (timerEl) {
     timerEl.textContent = formatTime(elapsedMs);
   }
+  primeBodies.forEach((body) => {
+    World.remove(world, body);
+  });
+  primeBodies.clear();
   homeScreen.classList.add("active");
   pauseScreen.classList.remove("active");
   resultScreen.classList.remove("active");
