@@ -20,6 +20,7 @@ const resultScreen = document.getElementById("resultScreen");
 const resultTitle = document.getElementById("resultTitle");
 const resultMessage = document.getElementById("resultMessage");
 const timerEl = document.getElementById("timer");
+const actionToast = document.getElementById("actionToast");
 const startButton = document.getElementById("startButton");
 const resumeButton = document.getElementById("resumeButton");
 const homeButton = document.getElementById("homeButton");
@@ -49,6 +50,26 @@ let playerVelocityX = 0;
 let playerScale = 1;
 let pulseTimer = 0;
 let pulseDuration = 0;
+let toastTimer;
+let resizeRaf;
+let resizeDebounceTimer;
+
+const cutePalettes = {
+  player: {
+    base: "#ff9aa2",
+    light: "#ffe2e6",
+    outline: "#ff6f83",
+    eye: "#5a3941",
+    blush: "#ffb6c1",
+  },
+  prime: {
+    base: "#9de7ff",
+    light: "#e8f9ff",
+    outline: "#5fbfe0",
+    eye: "#2f4b5f",
+    blush: "#ffb6d4",
+  },
+};
 
 const state = {
   keys: { left: false, right: false },
@@ -56,41 +77,71 @@ const state = {
   pointerX: 0,
 };
 
+const GAME_WIDTH = 560;
+const GAME_HEIGHT = 900;
+
 function resizeCanvas() {
   const wrap = document.getElementById("canvasWrap");
   const rect = wrap.getBoundingClientRect();
-  canvas.width = rect.width * window.devicePixelRatio;
-  canvas.height = rect.height * window.devicePixelRatio;
-  playerBaseY = canvas.height - 110;
+  if (rect.width < 10 || rect.height < 10) {
+    return;
+  }
+  const scale = Math.min(rect.width / GAME_WIDTH, rect.height / GAME_HEIGHT);
+  const safeScale = Number.isFinite(scale) ? scale : 1;
+  canvas.style.width = `${GAME_WIDTH}px`;
+  canvas.style.height = `${GAME_HEIGHT}px`;
+  canvas.style.transform = `translate(-50%, -50%) scale(${safeScale})`;
+
+  const ratio = window.devicePixelRatio || 1;
+  canvas.width = GAME_WIDTH * ratio;
+  canvas.height = GAME_HEIGHT * ratio;
+  playerBaseY = GAME_HEIGHT - 110;
 
   if (render) {
-    render.options.width = canvas.width;
-    render.options.height = canvas.height;
-    Render.setPixelRatio(render, window.devicePixelRatio);
+    render.options.width = GAME_WIDTH;
+    render.options.height = GAME_HEIGHT;
+    Render.setPixelRatio(render, ratio);
   }
 
   if (ground) {
     Body.setPosition(ground, {
-      x: canvas.width / 2,
-      y: canvas.height - 30,
+      x: GAME_WIDTH / 2,
+      y: GAME_HEIGHT - 30,
     });
     Body.setVertices(
       ground,
-      Bodies.rectangle(canvas.width / 2, canvas.height - 30, canvas.width, 60)
+      Bodies.rectangle(GAME_WIDTH / 2, GAME_HEIGHT - 30, GAME_WIDTH, 60)
         .vertices
     );
   }
 
   if (player) {
     const currentX = player.position.x;
-    const minX = 40 * window.devicePixelRatio;
-    const maxX = canvas.width - 40 * window.devicePixelRatio;
+    const minX = 40;
+    const maxX = GAME_WIDTH - 40;
     targetX = Math.max(minX, Math.min(maxX, currentX));
     Body.setPosition(player, {
       x: targetX,
       y: playerBaseY,
     });
   }
+}
+
+function scheduleResize() {
+  if (resizeRaf) {
+    cancelAnimationFrame(resizeRaf);
+  }
+  resizeRaf = requestAnimationFrame(() => {
+    resizeRaf = null;
+    resizeCanvas();
+  });
+  if (resizeDebounceTimer) {
+    clearTimeout(resizeDebounceTimer);
+  }
+  resizeDebounceTimer = setTimeout(() => {
+    resizeDebounceTimer = null;
+    resizeCanvas();
+  }, 180);
 }
 
 function setupWorld() {
@@ -106,25 +157,31 @@ function setupWorld() {
     canvas,
     engine,
     options: {
-      width: canvas.width,
-      height: canvas.height,
+      width: GAME_WIDTH,
+      height: GAME_HEIGHT,
       wireframes: false,
       background: "transparent",
     },
   });
 
-  ground = Bodies.rectangle(canvas.width / 2, canvas.height - 30, canvas.width, 60, {
+  ground = Bodies.rectangle(GAME_WIDTH / 2, GAME_HEIGHT - 30, GAME_WIDTH, 60, {
     isStatic: true,
     render: { fillStyle: "#ffe6d8" },
   });
 
-  player = Bodies.circle(canvas.width / 2, canvas.height - 110, 34, {
+  player = Bodies.circle(GAME_WIDTH / 2, GAME_HEIGHT - 110, 34, {
     frictionAir: 0.2,
-    render: { fillStyle: "#ff9aa2" },
+    render: { visible: false },
   });
   player.isStatic = true;
   player.isSensor = true;
-  player.plugin = { labelText: "1", textColor: "#ffffff" };
+  player.plugin = {
+    labelText: "1",
+    textColor: "#2f2a36",
+    textStroke: "#ffffff",
+    kind: "player",
+    cuteLabelOffset: 0,
+  };
 
   World.add(world, [ground, player]);
 
@@ -152,15 +209,26 @@ function drawLabels() {
 
   const bodies = Composite.allBodies(world);
   bodies.forEach((body) => {
+    if (body.plugin && body.plugin.kind) {
+      drawCuteBall(ctx, body);
+    }
+  });
+  bodies.forEach((body) => {
     if (!body.plugin || !body.plugin.labelText) {
       return;
     }
     const { x, y } = body.position;
     ctx.fillStyle = body.plugin.textColor || "#2f2a36";
-    ctx.font = "600 18px 'Jua', 'Trebuchet MS', sans-serif";
+    ctx.strokeStyle = body.plugin.textStroke || "#ffffff";
+    const radius = body.circleRadius || 28;
+    const fontSize = Math.max(14, Math.min(20, radius * 0.7));
+    ctx.font = `700 ${fontSize}px 'Jua', 'Trebuchet MS', sans-serif`;
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
-    ctx.fillText(body.plugin.labelText, x, y);
+    const offset = body.plugin.cuteLabelOffset || 0;
+    ctx.lineWidth = Math.max(3, radius * 0.12);
+    ctx.strokeText(body.plugin.labelText, x, y + offset);
+    ctx.fillText(body.plugin.labelText, x, y + offset);
   });
 
   effects.forEach((effect) => {
@@ -183,6 +251,49 @@ function drawLabels() {
   ctx.restore();
 }
 
+function drawCuteBall(ctx, body) {
+  const palette = body.plugin.kind === "player" ? cutePalettes.player : cutePalettes.prime;
+  const radius = body.circleRadius || 26;
+  ctx.save();
+  ctx.translate(body.position.x, body.position.y);
+
+  const gradient = ctx.createRadialGradient(
+    -radius * 0.3,
+    -radius * 0.4,
+    radius * 0.2,
+    0,
+    0,
+    radius
+  );
+  gradient.addColorStop(0, palette.light);
+  gradient.addColorStop(1, palette.base);
+
+  ctx.fillStyle = gradient;
+  ctx.beginPath();
+  ctx.arc(0, 0, radius, 0, Math.PI * 2);
+  ctx.fill();
+
+  ctx.lineWidth = Math.max(2, radius * 0.08);
+  ctx.strokeStyle = palette.outline;
+  ctx.stroke();
+
+  ctx.globalAlpha = 0.6;
+  ctx.fillStyle = "#ffffff";
+  ctx.beginPath();
+  ctx.ellipse(
+    -radius * 0.35,
+    -radius * 0.35,
+    radius * 0.22,
+    radius * 0.16,
+    -0.4,
+    0,
+    Math.PI * 2
+  );
+  ctx.fill();
+
+  ctx.restore();
+}
+
 function updatePlayer(event) {
   if (!gameActive || isPaused) {
     return;
@@ -190,7 +301,7 @@ function updatePlayer(event) {
 
   const currentX = player.position.x;
   const deltaRatio = event.delta / 16.67;
-  const maxSpeed = 3.0 * window.devicePixelRatio;
+  const maxSpeed = 3.0;
   let targetVel = 0;
   if (state.pointerActive) {
     const diff = targetX - currentX;
@@ -214,8 +325,8 @@ function updatePlayer(event) {
 
   let desiredX = currentX + playerVelocityX * deltaRatio;
 
-  const minX = 40 * window.devicePixelRatio;
-  const maxX = canvas.width - 40 * window.devicePixelRatio;
+  const minX = 40;
+  const maxX = GAME_WIDTH - 40;
   desiredX = Math.max(minX, Math.min(maxX, desiredX));
 
   Body.setPosition(player, { x: desiredX, y: playerBaseY });
@@ -237,18 +348,22 @@ function handleSpawns(event) {
     return;
   }
 
-  const x = 40 + Math.random() * (canvas.width - 80);
+  const x = 40 + Math.random() * (GAME_WIDTH - 80);
   const body = Bodies.circle(x, -40, 26, {
     restitution: 0.4,
     frictionAir: 0.01,
-    render: { fillStyle: "#b6f0ff" },
+    render: { visible: false },
   });
   body.plugin = {
     labelText: String(primeData.value),
     textColor: "#2f2a36",
+    textStroke: "#ffffff",
     primeValue: primeData.value,
     source: primeData.source,
     driftX: Common.random(-0.00035, 0.00035),
+    swingPhase: Common.random(0, Math.PI * 2),
+    kind: "prime",
+    cuteLabelOffset: 0,
   };
   Body.setVelocity(body, { x: Common.random(-0.4, 0.4), y: 1.2 * dropSpeedScale });
 
@@ -261,7 +376,7 @@ function cleanupOffscreen() {
     if (body === ground || body === player) {
       return;
     }
-    if (body.position.y > canvas.height + 120) {
+    if (body.position.y > GAME_HEIGHT + 120) {
       World.remove(world, body);
     }
   });
@@ -533,7 +648,7 @@ function startGame() {
   updateXValue();
   spawnTimer = 0;
   spawnInterval = 1600;
-  targetX = player ? player.position.x : canvas.width / 2;
+  targetX = player ? player.position.x : GAME_WIDTH / 2;
   elapsedMs = 0;
   if (timerEl) {
     timerEl.textContent = formatTime(elapsedMs);
@@ -592,6 +707,20 @@ function resetToHome() {
   resultScreen.classList.remove("active");
 }
 
+function showToast(message) {
+  if (!actionToast) {
+    return;
+  }
+  actionToast.textContent = message;
+  actionToast.classList.add("show");
+  if (toastTimer) {
+    clearTimeout(toastTimer);
+  }
+  toastTimer = setTimeout(() => {
+    actionToast.classList.remove("show");
+  }, 900);
+}
+
 function handleKey(e, isDown) {
   if (e.key === "ArrowLeft") {
     e.preventDefault();
@@ -608,8 +737,12 @@ function handlePointer(e) {
     return;
   }
   const rect = canvas.getBoundingClientRect();
-  const x = e.clientX - rect.left;
-  targetX = x * window.devicePixelRatio;
+  const scaleX = rect.width / GAME_WIDTH;
+  if (scaleX <= 0) {
+    return;
+  }
+  const x = (e.clientX - rect.left) / scaleX;
+  targetX = x;
 }
 
 function setupInput() {
@@ -638,13 +771,32 @@ function init() {
   setupInput();
   engine.timing.timeScale = 0;
 
-  window.addEventListener("resize", resizeCanvas);
+  window.addEventListener("resize", scheduleResize);
+  if ("ResizeObserver" in window && canvasWrap) {
+    const observer = new ResizeObserver(() => scheduleResize());
+    observer.observe(canvasWrap);
+  }
 
-  startButton.addEventListener("click", startGame);
-  resumeButton.addEventListener("click", resumeGame);
-  homeButton.addEventListener("click", resetToHome);
-  restartButton.addEventListener("click", startGame);
-  pauseButton.addEventListener("click", pauseGame);
+  startButton.addEventListener("click", () => {
+    showToast("게임 시작!");
+    startGame();
+  });
+  resumeButton.addEventListener("click", () => {
+    showToast("다시 시작!");
+    resumeGame();
+  });
+  homeButton.addEventListener("click", () => {
+    showToast("홈으로 이동");
+    resetToHome();
+  });
+  restartButton.addEventListener("click", () => {
+    showToast("다시 도전!");
+    startGame();
+  });
+  pauseButton.addEventListener("click", () => {
+    showToast("일시정지");
+    pauseGame();
+  });
 }
 
 init();

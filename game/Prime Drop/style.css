@@ -20,11 +20,12 @@ body {
     radial-gradient(circle at 90% 20%, #fce5ff, transparent 40%),
     linear-gradient(160deg, var(--bg-1), var(--bg-2));
   color: var(--ink);
-  min-height: 100vh;
+  min-height: 100dvh;
+  overflow: hidden;
 }
 
 #app {
-  min-height: 100vh;
+  min-height: 100dvh;
   display: flex;
   flex-direction: column;
 }
@@ -70,8 +71,14 @@ body {
 }
 
 #gameCanvas {
+  position: absolute;
+  left: 50%;
+  top: 50%;
   width: 100%;
   height: 100%;
+  transform: translate(-50%, -50%);
+  transform-origin: center;
+  will-change: transform;
   border-radius: 24px;
   background: linear-gradient(180deg, #ffffff 0%, #f6fbff 100%);
   box-shadow: var(--shadow);
@@ -182,6 +189,26 @@ body {
   flex-wrap: wrap;
 }
 
+.action-toast {
+  position: fixed;
+  left: 50%;
+  bottom: 22px;
+  transform: translateX(-50%) scale(0.92);
+  background: rgba(255, 255, 255, 0.96);
+  padding: 10px 18px;
+  border-radius: 999px;
+  box-shadow: var(--shadow);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s ease, transform 0.2s ease;
+  z-index: 20;
+}
+
+.action-toast.show {
+  opacity: 1;
+  transform: translateX(-50%) scale(1);
+}
+
 @media (max-width: 600px) {
   .topbar {
     padding: 12px 16px;
@@ -202,5 +229,20 @@ body {
   .canvas-wrap {
     max-width: none;
     padding: 0 10px 18px;
+  }
+}
+
+@media (max-height: 720px) {
+  .topbar {
+    padding: 10px 14px;
+  }
+
+  .description {
+    font-size: 12px;
+    padding: 0 14px 6px;
+  }
+
+  .canvas-wrap {
+    padding-bottom: 12px;
   }
 }
