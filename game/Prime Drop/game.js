@@ -74,9 +74,11 @@ const cutePalettes = {
 
 const state = {
   keys: { left: false, right: false },
+  touch: { left: false, right: false },
   pointerActive: false,
-  pointerX: 0,
 };
+
+const activeTouchZones = new Map();
 
 const GAME_WIDTH = 560;
 const GAME_HEIGHT = 900;
@@ -198,7 +200,10 @@ function setupWorld() {
   Events.on(engine, "afterUpdate", updateParticles);
   Events.on(engine, "collisionStart", handleCollision);
 
-  runner = Runner.create();
+  runner = Runner.create({
+    isFixed: true,
+    delta: 1000 / 60,
+  });
   Runner.run(runner, engine);
   Render.run(render);
 }
@@ -314,8 +319,10 @@ function updatePlayer(event) {
     const diff = targetX - currentX;
     targetVel = Math.max(-maxSpeed, Math.min(maxSpeed, diff * 0.08));
   }
-  if (state.keys.left || state.keys.right) {
-    const direction = (state.keys.right ? 1 : 0) - (state.keys.left ? 1 : 0);
+  const leftHeld = state.keys.left || state.touch.left;
+  const rightHeld = state.keys.right || state.touch.right;
+  if (leftHeld || rightHeld) {
+    const direction = (rightHeld ? 1 : 0) - (leftHeld ? 1 : 0);
     targetVel = direction * maxSpeed;
   }
 
@@ -755,22 +762,69 @@ function handlePointer(e) {
   targetX = x;
 }
 
+function getTouchZone(e) {
+  const rect = canvas.getBoundingClientRect();
+  const midX = rect.left + rect.width / 2;
+  return e.clientX < midX ? "left" : "right";
+}
+
+function syncTouchState() {
+  state.touch.left = false;
+  state.touch.right = false;
+  activeTouchZones.forEach((zone) => {
+    if (zone === "left") {
+      state.touch.left = true;
+    }
+    if (zone === "right") {
+      state.touch.right = true;
+    }
+  });
+}
+
 function setupInput() {
   window.addEventListener("keydown", (e) => handleKey(e, true));
   window.addEventListener("keyup", (e) => handleKey(e, false));
 
   canvas.addEventListener("pointerdown", (e) => {
+    if (e.pointerType === "touch") {
+      activeTouchZones.set(e.pointerId, getTouchZone(e));
+      syncTouchState();
+      canvas.setPointerCapture(e.pointerId);
+      return;
+    }
     state.pointerActive = true;
     handlePointer(e);
+    canvas.setPointerCapture(e.pointerId);
   });
   canvas.addEventListener("pointermove", (e) => {
+    if (e.pointerType === "touch") {
+      return;
+    }
     if (!state.pointerActive) return;
     handlePointer(e);
   });
-  canvas.addEventListener("pointerup", () => {
+  canvas.addEventListener("pointerup", (e) => {
+    if (e.pointerType === "touch") {
+      activeTouchZones.delete(e.pointerId);
+      syncTouchState();
+      return;
+    }
     state.pointerActive = false;
   });
-  canvas.addEventListener("pointerleave", () => {
+  canvas.addEventListener("pointercancel", (e) => {
+    if (e.pointerType === "touch") {
+      activeTouchZones.delete(e.pointerId);
+      syncTouchState();
+      return;
+    }
+    state.pointerActive = false;
+  });
+  canvas.addEventListener("pointerleave", (e) => {
+    if (e.pointerType === "touch") {
+      activeTouchZones.delete(e.pointerId);
+      syncTouchState();
+      return;
+    }
     state.pointerActive = false;
   });
 }
