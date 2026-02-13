@@ -2,7 +2,6 @@
 const {
   Engine,
   Render,
-  Runner,
   World,
   Bodies,
   Body,
@@ -28,24 +27,25 @@ const restartButton = document.getElementById("restartButton");
 
 const engine = Engine.create();
 const world = engine.world;
-world.gravity.y = 0.1;
+world.gravity.y = 0.3;
 
 let render;
-let runner;
 let player;
 let ground;
 let gameActive = false;
 let isPaused = false;
-let targetX = 0;
 let currentXValue = 1;
 let spawnTimer = 0;
 let spawnInterval = 1600;
-let dropSpeedScale = 0.1;
+let dropSpeedScale = 0.3;
 let playerBaseY = 0;
 const basePrimes = [2, 3, 5, 7];
 const effects = [];
 const particles = [];
 let elapsedMs = 0;
+let timerStartMs = 0;
+let pausedAtMs = 0;
+let pausedTotalMs = 0;
 let playerVelocityX = 0;
 let playerScale = 1;
 let pulseTimer = 0;
@@ -54,6 +54,12 @@ let toastTimer;
 let resizeRaf;
 let resizeDebounceTimer;
 const primeBodies = new Set();
+
+let engineLoopRaf;
+let engineLastMs = 0;
+let engineAccumMs = 0;
+const ENGINE_STEP_MS = 1000 / 60;
+const ENGINE_MAX_FRAME_MS = 100;
 
 const cutePalettes = {
   player: {
@@ -75,7 +81,6 @@ const cutePalettes = {
 const state = {
   keys: { left: false, right: false },
   touch: { left: false, right: false },
-  pointerActive: false,
 };
 
 const activeTouchZones = new Map();
@@ -122,9 +127,9 @@ function resizeCanvas() {
     const currentX = player.position.x;
     const minX = 40;
     const maxX = GAME_WIDTH - 40;
-    targetX = Math.max(minX, Math.min(maxX, currentX));
+    const clampedX = Math.max(minX, Math.min(maxX, currentX));
     Body.setPosition(player, {
-      x: targetX,
+      x: clampedX,
       y: playerBaseY,
     });
   }
@@ -147,13 +152,45 @@ function scheduleResize() {
   }, 180);
 }
 
+function stopEngineLoop() {
+  if (engineLoopRaf) {
+    cancelAnimationFrame(engineLoopRaf);
+    engineLoopRaf = null;
+  }
+  engineLastMs = 0;
+  engineAccumMs = 0;
+}
+
+function engineLoop(time) {
+  if (!engineLastMs) {
+    engineLastMs = time;
+  }
+  const frameMs = Math.min(time - engineLastMs, ENGINE_MAX_FRAME_MS);
+  engineLastMs = time;
+
+  if (gameActive && !isPaused) {
+    engineAccumMs += frameMs;
+    while (engineAccumMs >= ENGINE_STEP_MS) {
+      Engine.update(engine, ENGINE_STEP_MS);
+      engineAccumMs -= ENGINE_STEP_MS;
+    }
+  } else {
+    engineAccumMs = 0;
+  }
+
+  engineLoopRaf = requestAnimationFrame(engineLoop);
+}
+
+function startEngineLoop() {
+  stopEngineLoop();
+  engineLoopRaf = requestAnimationFrame(engineLoop);
+}
+
 function setupWorld() {
   if (render) {
     Render.stop(render);
   }
-  if (runner) {
-    Runner.stop(runner);
-  }
+  stopEngineLoop();
   Composite.clear(world, false);
   primeBodies.clear();
 
@@ -200,12 +237,8 @@ function setupWorld() {
   Events.on(engine, "afterUpdate", updateParticles);
   Events.on(engine, "collisionStart", handleCollision);
 
-  runner = Runner.create({
-    isFixed: true,
-    delta: 1000 / 60,
-  });
-  Runner.run(runner, engine);
   Render.run(render);
+  startEngineLoop();
 }
 
 function drawLabels() {
@@ -312,13 +345,9 @@ function updatePlayer(event) {
   }
 
   const currentX = player.position.x;
-  const deltaRatio = event.delta / 16.67;
-  const maxSpeed = 3.0;
+  const deltaRatio = Math.min(event.delta / 16.67, 2);
+  const maxSpeed = 9.0;
   let targetVel = 0;
-  if (state.pointerActive) {
-    const diff = targetX - currentX;
-    targetVel = Math.max(-maxSpeed, Math.min(maxSpeed, diff * 0.08));
-  }
   const leftHeld = state.keys.left || state.touch.left;
   const rightHeld = state.keys.right || state.touch.right;
   if (leftHeld || rightHeld) {
@@ -446,11 +475,19 @@ function updateXValue() {
   }
 }
 
-function updateTimer(event) {
+function computeElapsedMs() {
+  if (!timerStartMs) {
+    return 0;
+  }
+  const now = isPaused && pausedAtMs ? pausedAtMs : performance.now();
+  return Math.max(0, now - timerStartMs - pausedTotalMs);
+}
+
+function updateTimer() {
   if (!gameActive || isPaused) {
     return;
   }
-  elapsedMs += event.delta;
+  elapsedMs = computeElapsedMs();
   if (timerEl) {
     timerEl.textContent = formatTime(elapsedMs);
   }
@@ -662,8 +699,10 @@ function startGame() {
   updateXValue();
   spawnTimer = 0;
   spawnInterval = 1600;
-  targetX = player ? player.position.x : GAME_WIDTH / 2;
   elapsedMs = 0;
+  timerStartMs = performance.now();
+  pausedAtMs = 0;
+  pausedTotalMs = 0;
   if (timerEl) {
     timerEl.textContent = formatTime(elapsedMs);
   }
@@ -682,6 +721,7 @@ function endGame(isClear) {
   gameActive = false;
   isPaused = false;
   engine.timing.timeScale = 0;
+  elapsedMs = computeElapsedMs();
   resultTitle.textContent = isClear ? "게임 클리어" : "게임 종료";
   resultMessage.textContent = isClear
     ? `1000까지 도달 시간: ${formatTime(elapsedMs)}`
@@ -694,6 +734,7 @@ function pauseGame() {
     return;
   }
   isPaused = true;
+  pausedAtMs = performance.now();
   engine.timing.timeScale = 0;
   pauseScreen.classList.add("active");
 }
@@ -703,6 +744,10 @@ function resumeGame() {
     return;
   }
   isPaused = false;
+  if (pausedAtMs) {
+    pausedTotalMs += performance.now() - pausedAtMs;
+    pausedAtMs = 0;
+  }
   engine.timing.timeScale = 1;
   pauseScreen.classList.remove("active");
 }
@@ -712,6 +757,9 @@ function resetToHome() {
   isPaused = false;
   engine.timing.timeScale = 0;
   elapsedMs = 0;
+  timerStartMs = 0;
+  pausedAtMs = 0;
+  pausedTotalMs = 0;
   if (timerEl) {
     timerEl.textContent = formatTime(elapsedMs);
   }
@@ -749,19 +797,6 @@ function handleKey(e, isDown) {
   }
 }
 
-function handlePointer(e) {
-  if (!gameActive || isPaused) {
-    return;
-  }
-  const rect = canvas.getBoundingClientRect();
-  const scaleX = rect.width / GAME_WIDTH;
-  if (scaleX <= 0) {
-    return;
-  }
-  const x = (e.clientX - rect.left) / scaleX;
-  targetX = x;
-}
-
 function getTouchZone(e) {
   const rect = canvas.getBoundingClientRect();
   const midX = rect.left + rect.width / 2;
@@ -786,46 +821,33 @@ function setupInput() {
   window.addEventListener("keyup", (e) => handleKey(e, false));
 
   canvas.addEventListener("pointerdown", (e) => {
-    if (e.pointerType === "touch") {
-      activeTouchZones.set(e.pointerId, getTouchZone(e));
-      syncTouchState();
-      canvas.setPointerCapture(e.pointerId);
+    if (e.pointerType !== "touch") {
       return;
     }
-    state.pointerActive = true;
-    handlePointer(e);
+    activeTouchZones.set(e.pointerId, getTouchZone(e));
+    syncTouchState();
     canvas.setPointerCapture(e.pointerId);
   });
-  canvas.addEventListener("pointermove", (e) => {
-    if (e.pointerType === "touch") {
-      return;
-    }
-    if (!state.pointerActive) return;
-    handlePointer(e);
-  });
   canvas.addEventListener("pointerup", (e) => {
-    if (e.pointerType === "touch") {
-      activeTouchZones.delete(e.pointerId);
-      syncTouchState();
+    if (e.pointerType !== "touch") {
       return;
     }
-    state.pointerActive = false;
+    activeTouchZones.delete(e.pointerId);
+    syncTouchState();
   });
   canvas.addEventListener("pointercancel", (e) => {
-    if (e.pointerType === "touch") {
-      activeTouchZones.delete(e.pointerId);
-      syncTouchState();
+    if (e.pointerType !== "touch") {
       return;
     }
-    state.pointerActive = false;
+    activeTouchZones.delete(e.pointerId);
+    syncTouchState();
   });
   canvas.addEventListener("pointerleave", (e) => {
-    if (e.pointerType === "touch") {
-      activeTouchZones.delete(e.pointerId);
-      syncTouchState();
+    if (e.pointerType !== "touch") {
       return;
     }
-    state.pointerActive = false;
+    activeTouchZones.delete(e.pointerId);
+    syncTouchState();
   });
 }
 
