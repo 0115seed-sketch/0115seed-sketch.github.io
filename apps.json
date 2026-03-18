@@ -17,7 +17,7 @@
       "description": "행동특성 및 종합의견 작성을 도와줍니다.",
       "url": "https://hthelper-public.web.app/",
       "icon": "fas fa-robot",
-      "visible": true,
+      "visible": false,
       "order": 2
     },
     {
@@ -37,7 +37,7 @@
       "description": "간단하게 청소 당번을 배정하는 프로그램입니다.",
       "url": "https://0115seed-sketch.github.io/first-html/clean.html",
       "icon": "fas fa-broom",
-      "visible": true,
+      "visible": false,
       "order": 4
     },
     {
