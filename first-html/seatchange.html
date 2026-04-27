@@ -206,8 +206,8 @@ document.addEventListener('DOMContentLoaded', () => {
     // [추가] 시험 대형 모드 상태
     let isExamMode = false;
 
-    const DEFAULT_LAYOUT = Array.from({ length: 36 }, (_, i) => ({ isDesk: true, id: i }));
-    const DEFAULT_STUDENTS_TEXT = Array.from({length: 36}, (_, i) => `${i+1} 학생${i+1}`).join('\n');
+    const DEFAULT_LAYOUT = Array.from({ length: 36 }, (_, i) => ({ isDesk: i < 30, id: i }));
+    const DEFAULT_STUDENTS_TEXT = Array.from({length: 30}, (_, i) => `${i+1} 학생${i+1}`).join('\n');
 
     function switchPage(pageName) {
         Object.values(pages).forEach(p => p.classList.add('hidden'));
@@ -330,7 +330,12 @@ document.addEventListener('DOMContentLoaded', () => {
     
     // [추가] 번호순 배치 함수
     function arrangeByNumber() {
-        const deskCells = layout.filter(c => c.isDesk).sort((a, b) => a.id - b.id);
+        const deskCells = layout.filter(c => c.isDesk).sort((a, b) => {
+            const colA = a.id % 6, colB = b.id % 6;
+            const rowA = Math.floor(a.id / 6), rowB = Math.floor(b.id / 6);
+            if (colA !== colB) return colA - colB;
+            return rowA - rowB;
+        });
         const sortedStudents = [...students].sort((a, b) => {
             const numA = parseInt(a.id, 10);
             const numB = parseInt(b.id, 10);
