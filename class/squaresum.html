@@ -10,19 +10,27 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
     <style>
-        body { margin: 0; overflow: hidden; background-color: #121212; color: #ffffff; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        body { margin: 0; overflow: hidden; background-color: #f8fafc; color: #1e293b; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
         #canvas-container { width: 100vw; height: 100vh; display: block; position: absolute; top: 0; left: 0; z-index: 1; }
         #ui-layer { position: relative; z-index: 10; pointer-events: none; width: 100%; height: 100%; display: flex; justify-content: flex-end; padding: 1.5rem; }
+        
         .ui-panel {
             pointer-events: auto;
-            background: rgba(30, 30, 35, 0.85);
+            background: rgba(255, 255, 255, 0.85);
             backdrop-filter: blur(12px);
-            border: 1px solid rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(0, 0, 0, 0.1);
             border-radius: 1rem;
             padding: 1.5rem;
             width: 340px;
             height: fit-content;
-            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.05);
+        }
+
+        /* 최소화 상태의 패널 스타일 */
+        .ui-panel.minimized {
+            width: auto;
+            padding: 0.75rem 1rem;
+            border-radius: 1.5rem;
         }
         
         button:disabled { opacity: 0.5; cursor: not-allowed; }
@@ -30,30 +38,31 @@
         /* 3D 라벨용 스타일 */
         .dim-label {
             position: absolute;
-            background: rgba(15, 23, 42, 0.4);
-            color: rgba(96, 165, 250, 0.85);
+            background: rgba(255, 255, 255, 0.75);
+            color: #2563eb;
             padding: 4px 10px;
             border-radius: 6px;
             font-weight: bold;
             font-size: 0.95rem;
-            border: 1px solid rgba(96, 165, 250, 0.25);
+            border: 1px solid rgba(37, 99, 235, 0.3);
             transform: translate(-50%, -50%);
             transition: opacity 0.2s;
             pointer-events: none;
             backdrop-filter: blur(2px);
             white-space: nowrap;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
         }
 
-        /* 개별 블록 Σk² 라벨: 배경 및 글자 투명도 낮춤 */
+        /* 개별 블록 수식 라벨 */
         .block-label {
             position: absolute;
-            background: rgba(0, 0, 0, 0.25);
-            color: rgba(255, 255, 255, 0.6);
+            background: rgba(255, 255, 255, 0.7);
+            color: #1e293b;
             padding: 2px 8px;
             border-radius: 4px;
             font-weight: bold;
             font-size: 0.85rem;
-            border: 1px solid rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(0, 0, 0, 0.15);
             transform: translate(-50%, -50%);
             transition: opacity 0.2s;
             pointer-events: none;
@@ -65,8 +74,8 @@
 <body>
     <div id="canvas-container"></div>
 
-    <!-- 완성 시 표시될 수식 오버레이 (위치를 3D 객체에 맞추기 위해 중앙 고정 클래스 제거 및 transform 추가) -->
-    <div id="formula-overlay" class="absolute z-30 text-lg md:text-2xl font-bold text-white bg-black/50 px-6 py-4 rounded-xl opacity-0 transition-opacity duration-500 pointer-events-none backdrop-blur-sm border border-white/20" style="transform: translate(-50%, -50%);">
+    <!-- 완성 시 표시될 수식 오버레이 -->
+    <div id="formula-overlay" class="absolute z-30 text-lg md:text-2xl font-bold text-slate-800 bg-white/80 px-6 py-4 rounded-xl opacity-0 transition-opacity duration-500 pointer-events-none backdrop-blur-sm border border-slate-300 shadow-xl" style="transform: translate(-50%, -50%);">
         <div class="flex items-center justify-center">
             <span>6</span>
             <div class="flex flex-col items-center justify-center mx-1.5 leading-none">
@@ -85,85 +94,92 @@
         <div id="label-d" class="dim-label opacity-0"></div>
         
         <!-- 미조립 개별 블록 라벨 -->
-        <div id="block-label-0" class="block-label opacity-0">1² + 2² + ... + n²</div>
-        <div id="block-label-1" class="block-label opacity-0">1² + 2² + ... + n²</div>
-        <div id="block-label-2" class="block-label opacity-0">1² + 2² + ... + n²</div>
-        <div id="block-label-3" class="block-label opacity-0">1² + 2² + ... + n²</div>
-        <div id="block-label-4" class="block-label opacity-0">1² + 2² + ... + n²</div>
-        <div id="block-label-5" class="block-label opacity-0">1² + 2² + ... + n²</div>
+        <div id="block-label-0" class="block-label opacity-0"></div>
+        <div id="block-label-1" class="block-label opacity-0"></div>
+        <div id="block-label-2" class="block-label opacity-0"></div>
+        <div id="block-label-3" class="block-label opacity-0"></div>
+        <div id="block-label-4" class="block-label opacity-0"></div>
+        <div id="block-label-5" class="block-label opacity-0"></div>
     </div>
 
     <div id="ui-layer">
-        <div class="ui-panel">
-            <div class="flex justify-between items-center mb-1">
-                <h1 id="ui-title" class="text-xl font-bold text-white hidden">∑k² 시각화</h1>
+        <!-- 초기 상태를 최소화(minimized)로 설정 -->
+        <div id="main-panel" class="ui-panel minimized">
+            <!-- Header 묶음 -->
+            <div class="flex justify-between items-center gap-3">
+                <!-- 초기 상태에서 제목은 숨김 -->
+                <h1 id="ui-title" class="text-xl font-bold text-slate-800 whitespace-nowrap hidden">∑k² 시각화</h1>
                 
-                <div id="mini-btn-container" class="flex-1 mr-3">
-                    <div id="batch-buttons-container" class="grid grid-cols-2 gap-2">
-                        <button id="btn-all-assemble" class="bg-blue-800 hover:bg-blue-700 transition-colors py-1.5 rounded text-sm font-bold shadow-lg border border-blue-500/30">
+                <!-- 최소화 시 버튼이 배치될 컨테이너 (초기 표시) -->
+                <div id="mini-btn-container" class="flex gap-2">
+                    <!-- 모두 조립/분해 버튼 묶음 (초기 위치) -->
+                    <div id="batch-buttons-container" class="flex gap-2 w-full">
+                        <button id="btn-all-assemble" class="flex-1 bg-blue-600 hover:bg-blue-700 text-white transition-colors py-1.5 px-3 rounded text-sm font-bold shadow-sm border border-blue-600/30 whitespace-nowrap">
                             모두 조립
                         </button>
-                        <button id="btn-all-disassemble" class="bg-gray-800 hover:bg-gray-700 transition-colors py-1.5 rounded text-sm font-bold shadow-lg border border-gray-500/30">
+                        <button id="btn-all-disassemble" class="flex-1 bg-slate-200 hover:bg-slate-300 text-slate-800 transition-colors py-1.5 px-3 rounded text-sm font-bold shadow-sm border border-slate-300 whitespace-nowrap">
                             모두 분해
                         </button>
                     </div>
                 </div>
 
-                <button id="btn-toggle-ui" class="text-gray-400 hover:text-white focus:outline-none" title="UI 최소화/최대화">
+                <button id="btn-toggle-ui" class="text-slate-500 hover:text-slate-800 focus:outline-none p-1 bg-slate-100 hover:bg-slate-200 rounded-full shrink-0 transition-colors" title="UI 최소화/최대화">
+                    <!-- 초기 상태에서는 expand(펼치기) 아이콘만 보임 -->
                     <svg id="icon-collapse" class="w-5 h-5 hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7"></path></svg>
                     <svg id="icon-expand" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
                 </button>
             </div>
             
-            <div id="ui-collapsible-top" class="hidden">
-                <p class="text-xs text-gray-400 mb-4">6개의 직각 피라미드가 원형을 유지하며 맞물립니다.</p>
+            <!-- Body 묶음 (초기 상태에서 전체 숨김) -->
+            <div id="ui-body" class="mt-2 hidden">
+                <p class="text-xs text-slate-500 mb-4">6개의 직각 피라미드가 원형을 유지하며 맞물립니다.</p>
 
                 <div class="mb-4">
                     <div class="flex justify-between items-center mb-2">
-                        <label class="text-sm font-semibold">피라미드 크기 (n)</label>
+                        <label class="text-sm font-semibold text-slate-700">피라미드 크기 (n)</label>
                     </div>
-                    <div class="flex items-center justify-between bg-black/40 rounded-lg p-1.5 border border-white/10">
-                        <button id="btn-n-dec" class="px-4 py-1 bg-gray-700 hover:bg-gray-600 rounded text-white font-bold transition-colors">-</button>
-                        <span id="n-display" class="font-bold text-lg text-blue-400">4</span>
-                        <button id="btn-n-inc" class="px-4 py-1 bg-gray-700 hover:bg-gray-600 rounded text-white font-bold transition-colors">+</button>
+                    <div class="flex items-center justify-between bg-slate-100 rounded-lg p-1.5 border border-slate-200">
+                        <button id="btn-n-dec" class="px-4 py-1 bg-white hover:bg-slate-50 border border-slate-300 rounded text-slate-700 font-bold transition-colors shadow-sm">-</button>
+                        <span id="n-display" class="font-bold text-lg text-blue-600">4</span>
+                        <button id="btn-n-inc" class="px-4 py-1 bg-white hover:bg-slate-50 border border-slate-300 rounded text-slate-700 font-bold transition-colors shadow-sm">+</button>
                     </div>
                 </div>
-            </div>
 
-            <!-- 개별 조립/분해 버튼 -->
-            <div class="grid grid-cols-2 gap-2 my-2">
-                <button id="btn-step-assemble" class="bg-blue-600 hover:bg-blue-500 transition-colors py-2 rounded text-sm font-bold shadow-lg">
-                    1번 조립하기
-                </button>
-                <button id="btn-step-disassemble" class="bg-gray-700 hover:bg-gray-600 transition-colors py-2 rounded text-sm font-bold shadow-lg" disabled>
-                    분해 완료
-                </button>
-            </div>
+                <!-- 개별 조립/분해 버튼 -->
+                <div class="grid grid-cols-2 gap-2 my-2">
+                    <button id="btn-step-assemble" class="bg-blue-500 hover:bg-blue-600 text-white transition-colors py-2 rounded text-sm font-bold shadow-sm">
+                        1번 조립하기
+                    </button>
+                    <button id="btn-step-disassemble" class="bg-slate-200 hover:bg-slate-300 text-slate-700 transition-colors py-2 rounded text-sm font-bold shadow-sm border border-slate-300" disabled>
+                        분해 완료
+                    </button>
+                </div>
 
-            <div id="ui-collapsible-bottom" class="hidden">
-                <div id="expanded-btn-container" class="mb-4 mt-4"></div>
+                <div id="expanded-btn-container" class="mb-4 mt-4">
+                    <!-- 패널 확장 시 위의 batch-buttons-container 가 이 곳으로 이동됨 -->
+                </div>
 
-                <div class="bg-black/30 rounded-lg p-3 text-sm space-y-2 border border-white/5">
+                <div class="bg-slate-50 rounded-lg p-3 text-sm space-y-2 border border-slate-200 shadow-sm">
                     <div class="flex justify-between items-center">
-                        <span class="text-gray-300">1개 피라미드:</span>
-                        <span id="val-pyramid" class="font-mono font-bold text-white">14</span>
+                        <span class="text-slate-600">1개 피라미드:</span>
+                        <span id="val-pyramid" class="font-mono font-bold text-slate-800">30</span>
                     </div>
                     <div class="flex justify-between items-center">
-                        <span class="text-gray-300">총 6개 블록 수:</span>
-                        <span id="val-total" class="font-mono font-bold text-white">84</span>
+                        <span class="text-slate-600">총 6개 블록 수:</span>
+                        <span id="val-total" class="font-mono font-bold text-slate-800">180</span>
                     </div>
-                    <div class="border-t border-gray-600/50 my-1"></div>
-                    <div class="flex justify-between items-center text-xs text-gray-400">
+                    <div class="border-t border-slate-300 my-1"></div>
+                    <div class="flex justify-between items-center text-xs text-slate-500">
                         <span>직육면체 공식:</span>
                         <span>n(n+1)(2n+1)</span>
                     </div>
                     <div class="flex justify-between items-center">
-                        <span class="text-gray-300">목표 크기 (가로x세로x높이):</span>
-                        <span id="val-box" class="font-mono font-bold text-white">3x4x7</span>
+                        <span class="text-slate-600">목표 크기 (가로x세로x높이):</span>
+                        <span id="val-box" class="font-mono font-bold text-slate-800">4x5x9</span>
                     </div>
                     <div class="flex justify-between items-center">
-                        <span class="text-gray-300">목표 총 부피:</span>
-                        <span id="val-box-vol" class="font-mono font-bold text-blue-400">84</span>
+                        <span class="text-slate-600">목표 총 부피:</span>
+                        <span id="val-box-vol" class="font-mono font-bold text-blue-600">180</span>
                     </div>
                 </div>
             </div>
@@ -201,7 +217,8 @@
             const container = document.getElementById('canvas-container');
 
             scene = new THREE.Scene();
-            scene.fog = new THREE.FogExp2(0x121212, 0.012);
+            // 배경 안개 색상을 밝게 설정
+            scene.fog = new THREE.FogExp2(0xf8fafc, 0.012);
 
             camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
             camera.position.set(25, 18, 30);
@@ -218,7 +235,8 @@
             controls.dampingFactor = 0.05;
             controls.maxPolarAngle = Math.PI / 2 + 0.05;
 
-            const ambientLight = new THREE.AmbientLight(0xffffff, 0.65);
+            // 주변광 강도 증가
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.85);
             scene.add(ambientLight);
 
             const dirLight = new THREE.DirectionalLight(0xffffff, 0.8);
@@ -234,14 +252,16 @@
             scene.add(dirLight);
 
             const planeGeo = new THREE.PlaneGeometry(200, 200);
-            const planeMat = new THREE.ShadowMaterial({ opacity: 0.3 });
+            // 그림자를 더 부드럽게 설정
+            const planeMat = new THREE.ShadowMaterial({ opacity: 0.15 });
             const plane = new THREE.Mesh(planeGeo, planeMat);
             plane.rotation.x = -Math.PI / 2;
             plane.position.y = -0.48; 
             plane.receiveShadow = true;
             scene.add(plane);
 
-            const gridHelper = new THREE.GridHelper(100, 100, 0x444444, 0x222222);
+            // 밝은 테마에 맞는 그리드 색상 적용
+            const gridHelper = new THREE.GridHelper(100, 100, 0xcbd5e1, 0xe2e8f0);
             gridHelper.position.y = -0.47;
             scene.add(gridHelper);
 
@@ -270,7 +290,7 @@
             clearAutoAnim();
             updateControlsUI();
             
-            // n 값에 비례하여 동적으로 라벨 텍스트 생성 (예: 1² + 2² + 3² + 4²)
+            // n 값에 비례하여 동적으로 라벨 텍스트 생성
             const dynamicLabelText = Array.from({length: n}, (_, i) => `${i + 1}²`).join(' + ');
             for (let i = 0; i < 6; i++) {
                 const blockLabel = document.getElementById(`block-label-${i}`);
@@ -354,7 +374,7 @@
             });
             masterGroup.updateMatrixWorld(true);
 
-            // 반투명 상자 및 모서리 헬퍼 (초기 투명도 0으로 설정하여 숨김 처리)
+            // 반투명 상자 및 모서리 헬퍼
             const targetGeo = new THREE.BoxGeometry(n, 2 * n + 1, n + 1);
             targetBoxMesh = new THREE.Mesh(
                 targetGeo,
@@ -365,7 +385,8 @@
 
             edgesHelper = new THREE.LineSegments(
                 new THREE.EdgesGeometry(targetGeo),
-                new THREE.LineBasicMaterial({ color: 0x90cdf4, transparent: true, opacity: 0, linewidth: 2 })
+                // 선 색상을 진한 파란색으로 변경
+                new THREE.LineBasicMaterial({ color: 0x2b6cb0, transparent: true, opacity: 0, linewidth: 2 })
             );
             edgesHelper.position.copy(targetCenter);
             scene.add(edgesHelper);
@@ -417,28 +438,23 @@
                     }
                 }
 
-                // 개별 블록의 Σk² 라벨 업데이트 (가림 판정 포함)
                 const blockLabel = document.getElementById(`block-label-${i}`);
                 if (group.userData.animProgress > 0.95) {
                     blockLabel.style.opacity = '0';
                 } else {
-                    // 피라미드의 로컬 중심(0,0,0)을 월드 좌표계로 변환
                     const centerPos = new THREE.Vector3(0, 0, 0);
                     centerPos.applyMatrix4(group.matrixWorld);
 
-                    // --- 가림 판정 (Occlusion Culling) ---
                     let isOccluded = false;
                     const dir = new THREE.Vector3().subVectors(centerPos, camera.position);
                     const distToCenter = dir.length();
                     dir.normalize();
 
                     raycaster.set(camera.position, dir);
-                    // masterGroup 안의 블록들만 교차 판정 수행
                     const intersects = raycaster.intersectObject(masterGroup, true);
 
                     for (let j = 0; j < intersects.length; j++) {
                         const hit = intersects[j];
-                        // 다른 조립 그룹의 블록이 카메라와 라벨 대상점 사이에 있는지 판정 (-0.1 여유값 부여)
                         if (hit.object.parent !== group && hit.distance < distToCenter - 0.1) {
                             isOccluded = true;
                             break;
@@ -446,32 +462,29 @@
                     }
 
                     if (isOccluded) {
-                        blockLabel.style.opacity = '0'; // 가려졌을 때 완전히 숨김
+                        blockLabel.style.opacity = '0'; 
                     } else {
-                        blockLabel.style.opacity = '0.5'; // 안 가려졌을 때 표시
+                        blockLabel.style.opacity = '0.9'; // 더 뚜렷하게 보이도록 조정
                         updateLabelPos(`block-label-${i}`, centerPos);
                     }
                 }
             });
 
-            // 전체 윤곽의 길이 라벨 (조립된 블록이 1개 이상일 때만 노출)
             if (hitBoxMesh) {
                 const isAssembling = currentStep > 0;
                 
                 const targetBoxOpacity = isAssembling ? 0.12 : 0;
                 const targetEdgeOpacity = isAssembling ? 0.6 : 0;
                 
-                // 자연스러운 전환을 위해 투명도 보간
                 targetBoxMesh.material.opacity += (targetBoxOpacity - targetBoxMesh.material.opacity) * 0.1;
                 edgesHelper.material.opacity += (targetEdgeOpacity - edgesHelper.material.opacity) * 0.1;
 
-                // 수식 오버레이가 3D 직육면체의 정중앙을 따라다니도록 위치 업데이트
                 updateLabelPos('formula-overlay', targetCenter);
 
                 if (isAssembling) {
-                    document.getElementById('label-w').style.opacity = '0.75';
-                    document.getElementById('label-h').style.opacity = '0.75';
-                    document.getElementById('label-d').style.opacity = '0.75';
+                    document.getElementById('label-w').style.opacity = '0.9';
+                    document.getElementById('label-h').style.opacity = '0.9';
+                    document.getElementById('label-d').style.opacity = '0.9';
                     
                     updateLabelPos('label-w', new THREE.Vector3(targetCenter.x, targetCenter.y - (2*n+1)/2, targetCenter.z - (n+1)/2));
                     updateLabelPos('label-h', new THREE.Vector3(targetCenter.x - n/2, targetCenter.y, targetCenter.z - (n+1)/2));
@@ -533,12 +546,10 @@
         }
 
         function setupClickEvent() {
-            // 마우스 클릭 및 모바일 터치를 모두 처리하는 공통 함수
             const handleInteraction = (e) => {
                 if (currentStep === 6 && hitBoxMesh) {
                     let clientX, clientY;
                     
-                    // 이벤트 타입에 따라 좌표 추출
                     if (e.type === 'touchstart') {
                         clientX = e.touches[0].clientX;
                         clientY = e.touches[0].clientY;
@@ -566,13 +577,23 @@
                 }
             };
 
-            // 데스크톱용 클릭 이벤트
             window.addEventListener('click', handleInteraction);
-            // 모바일용 터치 이벤트 추가 (passive 옵션을 주어 스크롤 성능 저하 방지)
             window.addEventListener('touchstart', handleInteraction, { passive: true });
         }
 
         function setupUI() {
+            const panel = document.getElementById('main-panel');
+            const uiBody = document.getElementById('ui-body');
+            const title = document.getElementById('ui-title');
+            
+            const miniBtnContainer = document.getElementById('mini-btn-container');
+            const expandedBtnContainer = document.getElementById('expanded-btn-container');
+            const batchBtns = document.getElementById('batch-buttons-container');
+
+            const btnToggleUI = document.getElementById('btn-toggle-ui');
+            const iconCollapse = document.getElementById('icon-collapse');
+            const iconExpand = document.getElementById('icon-expand');
+            
             const btnNInc = document.getElementById('btn-n-inc');
             const btnNDec = document.getElementById('btn-n-dec');
             const nDisplay = document.getElementById('n-display');
@@ -581,40 +602,31 @@
             const btnDisassemble = document.getElementById('btn-step-disassemble');
             const btnAllAssemble = document.getElementById('btn-all-assemble');
             const btnAllDisassemble = document.getElementById('btn-all-disassemble');
-
-            const btnToggleUI = document.getElementById('btn-toggle-ui');
-            const uiTop = document.getElementById('ui-collapsible-top');
-            const uiBottom = document.getElementById('ui-collapsible-bottom');
-            const iconCollapse = document.getElementById('icon-collapse');
-            const iconExpand = document.getElementById('icon-expand');
-            
-            const title = document.getElementById('ui-title');
-            const batchBtns = document.getElementById('batch-buttons-container');
-            const miniBtnContainer = document.getElementById('mini-btn-container');
-            const expandedBtnContainer = document.getElementById('expanded-btn-container');
             
             let isUIMinimized = true;
 
             btnToggleUI.addEventListener('click', () => {
                 isUIMinimized = !isUIMinimized;
                 if (isUIMinimized) {
-                    uiTop.classList.add('hidden');
-                    uiBottom.classList.add('hidden');
-                    iconCollapse.classList.add('hidden');
-                    iconExpand.classList.remove('hidden');
-                    
+                    panel.classList.add('minimized');
+                    uiBody.classList.add('hidden');
                     title.classList.add('hidden');
+                    
                     miniBtnContainer.classList.remove('hidden');
                     miniBtnContainer.appendChild(batchBtns);
-                } else {
-                    uiTop.classList.remove('hidden');
-                    uiBottom.classList.remove('hidden');
-                    iconCollapse.classList.remove('hidden');
-                    iconExpand.classList.add('hidden');
                     
+                    iconCollapse.classList.add('hidden');
+                    iconExpand.classList.remove('hidden');
+                } else {
+                    panel.classList.remove('minimized');
+                    uiBody.classList.remove('hidden');
                     title.classList.remove('hidden');
+                    
                     miniBtnContainer.classList.add('hidden');
                     expandedBtnContainer.appendChild(batchBtns);
+                    
+                    iconCollapse.classList.remove('hidden');
+                    iconExpand.classList.add('hidden');
                 }
             });
 
@@ -665,6 +677,17 @@
                         updateControlsUI();
                     } else {
                         clearAutoAnim();
+                        
+                        // 마지막 블록의 애니메이션이 완료될 즈음(약 800ms 후) 수식 표시
+                        setTimeout(() => {
+                            const overlay = document.getElementById('formula-overlay');
+                            overlay.style.opacity = '1';
+                            
+                            if (formulaTimeout) clearTimeout(formulaTimeout);
+                            formulaTimeout = setTimeout(() => {
+                                overlay.style.opacity = '0';
+                            }, 5000);
+                        }, 800);
                     }
                 }, 250); 
             });
