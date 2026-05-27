@@ -39,7 +39,7 @@
         .dim-label {
             position: absolute;
             background: rgba(255, 255, 255, 0.9);
-            color: #1d4ed8; /* blue-700 */
+            color: #1d4ed8; 
             padding: 4px 10px;
             border-radius: 6px;
             font-weight: bold;
@@ -66,29 +66,29 @@
         <div id="label-w" class="dim-label opacity-0"></div>
         <div id="label-d" class="dim-label opacity-0"></div>
         
-        <!-- 3D 공간 상에 띄울 공식 가이드 라벨 (수식 구조화 및 가독성 최적화) -->
-        <div id="label-formula" class="dim-label opacity-0 border-blue-300 text-blue-800 flex items-center p-6 bg-white/95 border-2 rounded-2xl shadow-[0_0_30px_rgba(59,130,246,0.25)] transition-all duration-300 math-font" style="transform: translate(-50%, -50%) scale(0.95);">
+        <!-- 3D 공간 상에 띄울 공식 가이드 라벨 (수식 구조화 및 모바일 대응 절반 크기 축소) -->
+        <div id="label-formula" class="dim-label opacity-0 border-blue-300 text-blue-800 flex items-center p-3 bg-white/95 border-2 rounded-xl shadow-[0_0_15px_rgba(59,130,246,0.25)] transition-all duration-300 math-font" style="transform: translate(-50%, -50%) scale(0.95);">
             <!-- 좌항: 시그마(1부터 n까지) k^3 -->
-            <div class="flex items-center mr-4">
+            <div class="flex items-center mr-2">
                 <div class="flex flex-col items-center justify-center mr-1">
-                    <span class="text-sm font-bold text-blue-600 leading-none mb-0.5">n</span>
-                    <span class="text-5xl leading-none">&sum;</span>
-                    <span class="text-xs font-bold text-blue-600 leading-none mt-1">k=1</span>
+                    <span class="text-xs font-bold text-blue-600 leading-none mb-0.5">n</span>
+                    <span class="text-3xl leading-none">&sum;</span>
+                    <span class="text-[0.6rem] font-bold text-blue-600 leading-none mt-0.5">k=1</span>
                 </div>
-                <span class="text-4xl font-semibold mt-1">k<sup class="text-xl text-blue-700 font-bold ml-0.5">3</sup></span>
+                <span class="text-2xl font-semibold mt-1">k<sup class="text-sm text-blue-700 font-bold ml-0.5">3</sup></span>
             </div>
             
-            <span class="text-4xl mx-2 font-bold text-gray-600">=</span>
+            <span class="text-2xl mx-1.5 font-bold text-gray-600">=</span>
             
             <!-- 우항: [n(n+1)/2]^2 -->
             <div class="flex items-center">
-                <span class="text-6xl font-light text-gray-700">[</span>
-                <span class="flex flex-col items-center justify-center font-bold leading-tight mt-1 mx-2">
-                    <span class="text-3xl border-b-[3px] border-blue-500/60 pb-1 px-4 tracking-wide">n(n + 1)</span>
-                    <span class="text-3xl pt-1">2</span>
+                <span class="text-4xl font-light text-gray-700">[</span>
+                <span class="flex flex-col items-center justify-center font-bold leading-tight mt-0.5 mx-1.5">
+                    <span class="text-lg border-b-[2px] border-blue-500/60 pb-0.5 px-2 tracking-wide">n(n + 1)</span>
+                    <span class="text-lg pt-0.5">2</span>
                 </span>
-                <span class="text-6xl font-light text-gray-700">]</span>
-                <sup class="text-3xl font-bold text-blue-700 -mt-8 ml-1">2</sup>
+                <span class="text-4xl font-light text-gray-700">]</span>
+                <sup class="text-xl font-bold text-blue-700 -mt-5 ml-0.5">2</sup>
             </div>
         </div>
     </div>
@@ -481,7 +481,7 @@
                 document.getElementById('label-d').style.opacity = '0';
 
                 if (showFormulaLabel) {
-                    updateLabelPos('label-formula', new THREE.Vector3(0, 1.8, 0));
+                    updateLabelPos('label-formula', new THREE.Vector3(0, 0.5, 0));
                 }
             }
 
@@ -644,7 +644,7 @@
             document.getElementById('btn-step-assemble').addEventListener('click', stepAssemble);
             document.getElementById('btn-step-disassemble').addEventListener('click', stepDisassemble);
 
-            // 모두 조립/분해 공통 함수
+            // 모두 조립/분해 공통 함수 (재귀적 타이머)
             function assembleNext() {
                 if (currentStep < currentN) { 
                     groups[currentStep].userData.animTarget = 2; 
