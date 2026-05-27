@@ -397,17 +397,40 @@
                     }
                 }
 
-                // 개별 블록의 Σk² 라벨 업데이트
+                // 개별 블록의 Σk² 라벨 업데이트 (가림 판정 포함)
                 const blockLabel = document.getElementById(`block-label-${i}`);
                 if (group.userData.animProgress > 0.95) {
                     blockLabel.style.opacity = '0';
                 } else {
-                    // 최대 투명도값을 0.5로 낮추어 은은하게 표시
-                    blockLabel.style.opacity = '0.5';
                     // 피라미드의 로컬 중심(0,0,0)을 월드 좌표계로 변환
                     const centerPos = new THREE.Vector3(0, 0, 0);
                     centerPos.applyMatrix4(group.matrixWorld);
-                    updateLabelPos(`block-label-${i}`, centerPos);
+
+                    // --- 가림 판정 (Occlusion Culling) ---
+                    let isOccluded = false;
+                    const dir = new THREE.Vector3().subVectors(centerPos, camera.position);
+                    const distToCenter = dir.length();
+                    dir.normalize();
+
+                    raycaster.set(camera.position, dir);
+                    // masterGroup 안의 블록들만 교차 판정 수행
+                    const intersects = raycaster.intersectObject(masterGroup, true);
+
+                    for (let j = 0; j < intersects.length; j++) {
+                        const hit = intersects[j];
+                        // 다른 조립 그룹의 블록이 카메라와 라벨 대상점 사이에 있는지 판정 (-0.1 여유값 부여)
+                        if (hit.object.parent !== group && hit.distance < distToCenter - 0.1) {
+                            isOccluded = true;
+                            break;
+                        }
+                    }
+
+                    if (isOccluded) {
+                        blockLabel.style.opacity = '0'; // 가려졌을 때 완전히 숨김
+                    } else {
+                        blockLabel.style.opacity = '0.5'; // 안 가려졌을 때 표시
+                        updateLabelPos(`block-label-${i}`, centerPos);
+                    }
                 }
             });
 
