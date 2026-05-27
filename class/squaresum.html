@@ -67,7 +67,15 @@
 
     <!-- 완성 시 표시될 수식 오버레이 (위치를 3D 객체에 맞추기 위해 중앙 고정 클래스 제거 및 transform 추가) -->
     <div id="formula-overlay" class="absolute z-30 text-lg md:text-2xl font-bold text-white bg-black/50 px-6 py-4 rounded-xl opacity-0 transition-opacity duration-500 pointer-events-none backdrop-blur-sm border border-white/20" style="transform: translate(-50%, -50%);">
-        6∑k² = n(n+1)(2n+1)
+        <div class="flex items-center justify-center">
+            <span>6</span>
+            <div class="flex flex-col items-center justify-center mx-1.5 leading-none">
+                <span class="text-[0.55em]">n</span>
+                <span class="text-[1.3em]">∑</span>
+                <span class="text-[0.55em]">k=1</span>
+            </div>
+            <span>k² = n(n+1)(2n+1)</span>
+        </div>
     </div>
 
     <!-- 3D 캔버스 위에 표시될 길이 라벨 컨테이너 -->
@@ -77,18 +85,30 @@
         <div id="label-d" class="dim-label opacity-0"></div>
         
         <!-- 미조립 개별 블록 라벨 -->
-        <div id="block-label-0" class="block-label opacity-0">Σk²</div>
-        <div id="block-label-1" class="block-label opacity-0">Σk²</div>
-        <div id="block-label-2" class="block-label opacity-0">Σk²</div>
-        <div id="block-label-3" class="block-label opacity-0">Σk²</div>
-        <div id="block-label-4" class="block-label opacity-0">Σk²</div>
-        <div id="block-label-5" class="block-label opacity-0">Σk²</div>
+        <div id="block-label-0" class="block-label opacity-0">1² + 2² + ... + n²</div>
+        <div id="block-label-1" class="block-label opacity-0">1² + 2² + ... + n²</div>
+        <div id="block-label-2" class="block-label opacity-0">1² + 2² + ... + n²</div>
+        <div id="block-label-3" class="block-label opacity-0">1² + 2² + ... + n²</div>
+        <div id="block-label-4" class="block-label opacity-0">1² + 2² + ... + n²</div>
+        <div id="block-label-5" class="block-label opacity-0">1² + 2² + ... + n²</div>
     </div>
 
     <div id="ui-layer">
         <div class="ui-panel">
             <div class="flex justify-between items-center mb-1">
-                <h1 class="text-xl font-bold text-white">∑k² 시각적 증명</h1>
+                <h1 id="ui-title" class="text-xl font-bold text-white hidden">∑k² 시각화</h1>
+                
+                <div id="mini-btn-container" class="flex-1 mr-3">
+                    <div id="batch-buttons-container" class="grid grid-cols-2 gap-2">
+                        <button id="btn-all-assemble" class="bg-blue-800 hover:bg-blue-700 transition-colors py-1.5 rounded text-sm font-bold shadow-lg border border-blue-500/30">
+                            모두 조립
+                        </button>
+                        <button id="btn-all-disassemble" class="bg-gray-800 hover:bg-gray-700 transition-colors py-1.5 rounded text-sm font-bold shadow-lg border border-gray-500/30">
+                            모두 분해
+                        </button>
+                    </div>
+                </div>
+
                 <button id="btn-toggle-ui" class="text-gray-400 hover:text-white focus:outline-none" title="UI 최소화/최대화">
                     <svg id="icon-collapse" class="w-5 h-5 hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7"></path></svg>
                     <svg id="icon-expand" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
@@ -104,7 +124,7 @@
                     </div>
                     <div class="flex items-center justify-between bg-black/40 rounded-lg p-1.5 border border-white/10">
                         <button id="btn-n-dec" class="px-4 py-1 bg-gray-700 hover:bg-gray-600 rounded text-white font-bold transition-colors">-</button>
-                        <span id="n-display" class="font-bold text-lg text-blue-400">3</span>
+                        <span id="n-display" class="font-bold text-lg text-blue-400">4</span>
                         <button id="btn-n-inc" class="px-4 py-1 bg-gray-700 hover:bg-gray-600 rounded text-white font-bold transition-colors">+</button>
                     </div>
                 </div>
@@ -121,18 +141,11 @@
             </div>
 
             <div id="ui-collapsible-bottom" class="hidden">
-                <div class="grid grid-cols-2 gap-2 mb-4 mt-4">
-                    <button id="btn-all-assemble" class="bg-blue-800 hover:bg-blue-700 transition-colors py-2 rounded text-sm font-bold shadow-lg border border-blue-500/30">
-                        모두 조립
-                    </button>
-                    <button id="btn-all-disassemble" class="bg-gray-800 hover:bg-gray-700 transition-colors py-2 rounded text-sm font-bold shadow-lg border border-gray-500/30">
-                        모두 분해
-                    </button>
-                </div>
+                <div id="expanded-btn-container" class="mb-4 mt-4"></div>
 
                 <div class="bg-black/30 rounded-lg p-3 text-sm space-y-2 border border-white/5">
                     <div class="flex justify-between items-center">
-                        <span class="text-gray-300">1개 피라미드 (Σk²):</span>
+                        <span class="text-gray-300">1개 피라미드:</span>
                         <span id="val-pyramid" class="font-mono font-bold text-white">14</span>
                     </div>
                     <div class="flex justify-between items-center">
@@ -171,7 +184,7 @@
             color: c, metalness: 0.1, roughness: 0.4, clearcoat: 0.2
         }));
 
-        let currentN = 3;
+        let currentN = 4;
         let currentStep = 0; 
         let autoAnimInterval = null;
         let formulaTimeout = null;
@@ -257,6 +270,13 @@
             clearAutoAnim();
             updateControlsUI();
             
+            // n 값에 비례하여 동적으로 라벨 텍스트 생성 (예: 1² + 2² + 3² + 4²)
+            const dynamicLabelText = Array.from({length: n}, (_, i) => `${i + 1}²`).join(' + ');
+            for (let i = 0; i < 6; i++) {
+                const blockLabel = document.getElementById(`block-label-${i}`);
+                if (blockLabel) blockLabel.textContent = dynamicLabelText;
+            }
+
             if (targetBoxMesh) scene.remove(targetBoxMesh);
             if (hitBoxMesh) scene.remove(hitBoxMesh);
             if (edgesHelper) scene.remove(edgesHelper);
@@ -568,6 +588,11 @@
             const iconCollapse = document.getElementById('icon-collapse');
             const iconExpand = document.getElementById('icon-expand');
             
+            const title = document.getElementById('ui-title');
+            const batchBtns = document.getElementById('batch-buttons-container');
+            const miniBtnContainer = document.getElementById('mini-btn-container');
+            const expandedBtnContainer = document.getElementById('expanded-btn-container');
+            
             let isUIMinimized = true;
 
             btnToggleUI.addEventListener('click', () => {
@@ -577,11 +602,19 @@
                     uiBottom.classList.add('hidden');
                     iconCollapse.classList.add('hidden');
                     iconExpand.classList.remove('hidden');
+                    
+                    title.classList.add('hidden');
+                    miniBtnContainer.classList.remove('hidden');
+                    miniBtnContainer.appendChild(batchBtns);
                 } else {
                     uiTop.classList.remove('hidden');
                     uiBottom.classList.remove('hidden');
                     iconCollapse.classList.remove('hidden');
                     iconExpand.classList.add('hidden');
+                    
+                    title.classList.remove('hidden');
+                    miniBtnContainer.classList.add('hidden');
+                    expandedBtnContainer.appendChild(batchBtns);
                 }
             });
 
