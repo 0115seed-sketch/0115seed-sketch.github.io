@@ -179,6 +179,26 @@
       "icon": "fas fa-dice",
       "visible": false,
       "order": 18
+    },
+    {
+      "name": "제곱의 합",
+      "category": "수업 도구",
+      "description": "제곱의 합 설명",
+      "url": "https://0115seed-sketch.github.io/class /squaresum.html",
+      "icon": "fas fa-adjust",
+      "visible": true,
+      "id": 19,
+      "order": 19
+    },
+    {
+      "name": "세제곱의 합",
+      "category": "수업 도구",
+      "description": "세제곱의 합 설명",
+      "url": "https://0115seed-sketch.github.io/class /qubesum.html",
+      "icon": "fas fa-adjust",
+      "visible": true,
+      "id": 20,
+      "order": 20
     }
   ]
 }
