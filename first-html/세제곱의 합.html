@@ -1,0 +1,589 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>세제곱의 합 3D 시각화 증명 (정육면체 변환)</title>
+    <!-- Tailwind CSS for UI -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Three.js for 3D Rendering -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+    <style>
+        body { margin: 0; overflow: hidden; background-color: #121212; color: #ffffff; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        #canvas-container { width: 100vw; height: 100vh; display: block; position: absolute; top: 0; left: 0; z-index: 1; }
+        #ui-layer { position: relative; z-index: 10; pointer-events: none; width: 100%; height: 100%; display: flex; justify-content: flex-end; padding: 1.5rem; }
+        .ui-panel {
+            pointer-events: auto;
+            background: rgba(30, 30, 35, 0.85);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 1rem;
+            padding: 1.5rem;
+            width: 360px;
+            height: fit-content;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
+        }
+        
+        button:disabled { opacity: 0.5; cursor: not-allowed; }
+        
+        .dim-label {
+            position: absolute;
+            background: rgba(15, 23, 42, 0.4);
+            color: rgba(96, 165, 250, 0.85);
+            padding: 4px 10px;
+            border-radius: 6px;
+            font-weight: bold;
+            font-size: 0.95rem;
+            border: 1px solid rgba(96, 165, 250, 0.25);
+            transform: translate(-50%, -50%);
+            transition: opacity 0.2s;
+            pointer-events: none;
+            backdrop-filter: blur(2px);
+            white-space: nowrap;
+        }
+    </style>
+</head>
+<body>
+    <div id="canvas-container"></div>
+
+    <div id="labels-container" class="pointer-events-none absolute inset-0 z-20 overflow-hidden">
+        <div id="label-w" class="dim-label opacity-0"></div>
+        <div id="label-d" class="dim-label opacity-0"></div>
+    </div>
+
+    <div id="ui-layer">
+        <div class="ui-panel">
+            <div class="flex justify-between items-center mb-1">
+                <h1 class="text-xl font-bold text-white">∑k³ 시각적 증명</h1>
+                <button id="btn-toggle-ui" class="text-gray-400 hover:text-white focus:outline-none" title="UI 최소화/최대화">
+                    <svg id="icon-collapse" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                    <svg id="icon-expand" class="w-5 h-5 hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7"></path></svg>
+                </button>
+            </div>
+            
+            <div id="ui-collapsible-top">
+                <p class="text-xs text-gray-400 mb-4">정육면체(k³)가 L자 테두리로 펼쳐지며 조립됩니다.</p>
+
+                <div class="mb-4">
+                    <div class="flex justify-between items-center mb-2">
+                        <label class="text-sm font-semibold">최대 숫자 (n)</label>
+                    </div>
+                    <div class="flex items-center justify-between bg-black/40 rounded-lg p-1.5 border border-white/10">
+                        <button id="btn-n-dec" class="px-4 py-1 bg-gray-700 hover:bg-gray-600 rounded text-white font-bold transition-colors">-</button>
+                        <span id="n-display" class="font-bold text-lg text-blue-400">4</span>
+                        <button id="btn-n-inc" class="px-4 py-1 bg-gray-700 hover:bg-gray-600 rounded text-white font-bold transition-colors">+</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-2 gap-2 my-2">
+                <button id="btn-step-assemble" class="bg-blue-600 hover:bg-blue-500 transition-colors py-2 rounded text-sm font-bold shadow-lg">
+                    1³ 조립하기
+                </button>
+                <button id="btn-step-disassemble" class="bg-gray-700 hover:bg-gray-600 transition-colors py-2 rounded text-sm font-bold shadow-lg" disabled>
+                    분해 완료
+                </button>
+            </div>
+
+            <div id="ui-collapsible-bottom">
+                <div class="grid grid-cols-2 gap-2 mb-4 mt-4">
+                    <button id="btn-all-assemble" class="bg-blue-800 hover:bg-blue-700 transition-colors py-2 rounded text-sm font-bold shadow-lg border border-blue-500/30">
+                        모두 조립
+                    </button>
+                    <button id="btn-all-disassemble" class="bg-gray-800 hover:bg-gray-700 transition-colors py-2 rounded text-sm font-bold shadow-lg border border-gray-500/30">
+                        모두 분해
+                    </button>
+                </div>
+
+                <div class="bg-black/30 rounded-lg p-3 text-sm space-y-2 border border-white/5">
+                    <div class="flex justify-between items-center text-xs text-gray-400">
+                        <span>현재 조립된 부피 (k³):</span>
+                        <span id="val-gnomon" class="font-mono text-white">0</span>
+                    </div>
+                    <div class="border-t border-gray-600/50 my-1"></div>
+                    <div class="flex justify-between items-center text-xs text-gray-400">
+                        <span>전체 블록 수 (Σk³):</span>
+                        <span id="val-total" class="font-mono font-bold text-white">100</span>
+                    </div>
+                    <div class="flex justify-between items-center text-xs text-gray-400">
+                        <span>목표 정사각형 한 변 (Sn):</span>
+                        <span id="val-side" class="font-mono font-bold text-blue-400">10</span>
+                    </div>
+                    <div class="flex justify-between items-center text-xs text-gray-400">
+                        <span>목표 정사각형 넓이 (Sn²):</span>
+                        <span id="val-area" class="font-mono font-bold text-blue-400">100</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let scene, camera, renderer, controls, masterGroup;
+        let groups = [];
+        
+        const raycaster = new THREE.Raycaster();
+        const mouse = new THREE.Vector2(-1, -1);
+        let targetBoxMesh, hitBoxMesh, edgesHelper;
+        let targetCenter = new THREE.Vector3();
+        
+        // 정육면체 형태를 시각적으로 보여주기 위해 큐브 블록 사용
+        const blockGeo = new THREE.BoxGeometry(0.95, 0.95, 0.95);
+        const colors = [0xff595e, 0xffca3a, 0x8ac926, 0x1982c4, 0x6a4c93, 0xeb5e28];
+        const materials = colors.map(c => new THREE.MeshPhysicalMaterial({ 
+            color: c, metalness: 0.1, roughness: 0.3, clearcoat: 0.4
+        }));
+
+        let currentN = 4;
+        let currentStep = 0; // 0 (모두 정육면체) ~ n (모두 조립됨)
+        let autoAnimInterval = null;
+
+        window.onload = function() {
+            init3D();
+            setupUI();
+            createModel(currentN);
+            animate();
+        };
+
+        function init3D() {
+            const container = document.getElementById('canvas-container');
+
+            scene = new THREE.Scene();
+            scene.fog = new THREE.FogExp2(0x121212, 0.012);
+
+            camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
+            camera.position.set(25, 35, 45); // 정육면체들과 타겟 평면이 모두 잘 보이도록 시점 설정
+
+            renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setPixelRatio(window.devicePixelRatio);
+            renderer.shadowMap.enabled = true;
+            renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+            container.appendChild(renderer.domElement);
+
+            controls = new THREE.OrbitControls(camera, renderer.domElement);
+            controls.enableDamping = true;
+            controls.dampingFactor = 0.05;
+            controls.maxPolarAngle = Math.PI / 2 - 0.05;
+            controls.target.set(0, 0, -5); // 씬 중심을 타겟과 큐브 사이로 조정
+
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.7);
+            scene.add(ambientLight);
+
+            const dirLight = new THREE.DirectionalLight(0xffffff, 0.8);
+            dirLight.position.set(10, 40, 20);
+            dirLight.castShadow = true;
+            dirLight.shadow.mapSize.width = 2048;
+            dirLight.shadow.mapSize.height = 2048;
+            dirLight.shadow.camera.near = 0.5;
+            dirLight.shadow.camera.far = 100;
+            const d = 30;
+            dirLight.shadow.camera.left = -d; dirLight.shadow.camera.right = d;
+            dirLight.shadow.camera.top = d; dirLight.shadow.camera.bottom = -d;
+            scene.add(dirLight);
+
+            const planeGeo = new THREE.PlaneGeometry(200, 200);
+            const planeMat = new THREE.ShadowMaterial({ opacity: 0.25 });
+            const plane = new THREE.Mesh(planeGeo, planeMat);
+            plane.rotation.x = -Math.PI / 2;
+            plane.position.y = -0.5; // 블록 하단과 맞닿는 위치
+            plane.receiveShadow = true;
+            scene.add(plane);
+
+            const gridHelper = new THREE.GridHelper(100, 100, 0x444444, 0x222222);
+            gridHelper.position.y = -0.49;
+            scene.add(gridHelper);
+
+            masterGroup = new THREE.Group();
+            scene.add(masterGroup);
+
+            window.addEventListener('mousemove', (e) => {
+                mouse.x = (e.clientX / window.innerWidth) * 2 - 1;
+                mouse.y = -(e.clientY / window.innerHeight) * 2 + 1;
+            });
+
+            window.addEventListener('resize', onWindowResize, false);
+        }
+
+        // k x k x k 큐브 블록을 L자 형태(Gnomon)로 매핑하는 수학적 로직
+        function buildCubeToGnomonMapping(k, Sk_prev) {
+            let topPairs = [];
+            let rightPairs = [];
+            
+            // y > 0 인 층들을 두 그룹으로 나눔 (L자의 왼쪽 날개와 아래쪽 날개)
+            for (let cy = 1; cy < k; cy++) {
+                for (let cz = 0; cz < k; cz++) {
+                    if (cz < k - cy) topPairs.push({cy, cz});
+                    else rightPairs.push({cy, cz});
+                }
+            }
+
+            let mappings = []; // 각 블록의 { 큐브 좌표, 타겟 L자 좌표 }
+
+            // 1. 코너 영역 (y=0 인 바닥층 k x k)
+            for (let cx = 0; cx < k; cx++) {
+                for (let cz = 0; cz < k; cz++) {
+                    mappings.push({
+                        cx, cy: 0, cz,
+                        tx: Sk_prev + cx,
+                        tz: Sk_prev + cz
+                    });
+                }
+            }
+
+            // 2. 왼쪽 날개 (Top Arm)
+            for (let i = 0; i < topPairs.length; i++) {
+                let p = topPairs[i];
+                for (let cx = 0; cx < k; cx++) {
+                    mappings.push({
+                        cx, cy: p.cy, cz: p.cz,
+                        tx: i, 
+                        tz: Sk_prev + cx
+                    });
+                }
+            }
+
+            // 3. 아래쪽 날개 (Right Arm)
+            for (let i = 0; i < rightPairs.length; i++) {
+                let p = rightPairs[i];
+                for (let cx = 0; cx < k; cx++) {
+                    mappings.push({
+                        cx, cy: p.cy, cz: p.cz,
+                        tx: Sk_prev + cx,
+                        tz: i 
+                    });
+                }
+            }
+            return mappings;
+        }
+
+        function createModel(n) {
+            groups.forEach(g => masterGroup.remove(g));
+            groups = [];
+            currentStep = 0;
+            clearAutoAnim();
+            updateControlsUI();
+            
+            if (targetBoxMesh) scene.remove(targetBoxMesh);
+            if (hitBoxMesh) scene.remove(hitBoxMesh);
+            if (edgesHelper) scene.remove(edgesHelper);
+
+            const Sn = (n * (n + 1)) / 2;
+            let totalBlocks = 0;
+
+            const cx_main = (Sn - 1) / 2;
+            const cz_main = (Sn - 1) / 2;
+
+            for (let k = 1; k <= n; k++) {
+                const group = new THREE.Group();
+                const material = materials[k - 1];
+                const Sk_prev = (k - 1) * k / 2;
+                
+                // 1. 블록 맵핑 데이터 생성
+                const mappings = buildCubeToGnomonMapping(k, Sk_prev);
+                
+                // 2. 이 그룹(큐브)의 대기 위치 설정 (타겟 사각형 뒤쪽에 나열)
+                const spacing = Math.max(8, n * 2);
+                const cubeStartX = (k - (n + 1) / 2) * spacing;
+                const cubeStartZ = -Sn/2 - 12;
+                const cubeCenterWorld = new THREE.Vector3(cubeStartX, 0, cubeStartZ);
+
+                // L자 모양이 펼쳐질 때의 중심점 (타겟 기준의 중심을 큐브 위치로 가져옴)
+                const L_TargetCenter = new THREE.Vector3( 
+                    ((Sk_prev + k/2) - 0.5) - cx_main, 
+                    0, 
+                    ((Sk_prev + k/2) - 0.5) - cz_main 
+                );
+
+                group.userData = { 
+                    animProgress: 0, 
+                    animTarget: 0,
+                    localIndex: k 
+                };
+
+                mappings.forEach(map => {
+                    const mesh = new THREE.Mesh(blockGeo, material);
+                    
+                    // State 0: 정육면체 상태의 월드 좌표
+                    const localCube = new THREE.Vector3(map.cx - (k - 1) / 2, map.cy, map.cz - (k - 1) / 2);
+                    const worldCube = cubeCenterWorld.clone().add(localCube);
+                    
+                    // State 2: 최종 조립된 L자 상태의 월드 좌표
+                    const worldTarget = new THREE.Vector3(map.tx - cx_main, 0, map.tz - cz_main);
+                    
+                    // State 1: 큐브 위치에서 펼쳐진 L자 상태의 월드 좌표
+                    const offsetToL = worldTarget.clone().sub(L_TargetCenter);
+                    const worldL = cubeCenterWorld.clone().add(offsetToL);
+
+                    mesh.position.copy(worldCube); // 초기 위치는 큐브
+                    mesh.castShadow = true;
+                    mesh.receiveShadow = true;
+                    
+                    mesh.userData = { 
+                        worldCube, 
+                        worldL, 
+                        worldTarget,
+                        cy: map.cy // 층수 정보 (언래핑 애니메이션용)
+                    };
+                    
+                    group.add(mesh);
+                    totalBlocks++;
+                });
+
+                masterGroup.add(group);
+                groups.push(group);
+            }
+
+            targetCenter.set(0, 0, 0); 
+            
+            const targetGeo = new THREE.BoxGeometry(Sn, 0.95, Sn);
+            targetBoxMesh = new THREE.Mesh(
+                targetGeo,
+                new THREE.MeshBasicMaterial({ color: 0x4299e1, transparent: true, opacity: 0, depthWrite: false })
+            );
+            targetBoxMesh.position.copy(targetCenter);
+            scene.add(targetBoxMesh);
+
+            edgesHelper = new THREE.LineSegments(
+                new THREE.EdgesGeometry(targetGeo),
+                new THREE.LineBasicMaterial({ color: 0x90cdf4, transparent: true, opacity: 0, linewidth: 2 })
+            );
+            edgesHelper.position.copy(targetCenter);
+            scene.add(edgesHelper);
+
+            hitBoxMesh = new THREE.Mesh(
+                new THREE.BoxGeometry(Sn + 1, 1.5, Sn + 1),
+                new THREE.MeshBasicMaterial({ visible: false })
+            );
+            hitBoxMesh.position.copy(targetCenter);
+            scene.add(hitBoxMesh);
+
+            document.getElementById('label-w').textContent = `Sn = ${Sn}`;
+            document.getElementById('label-d').textContent = `Sn = ${Sn}`;
+
+            updateUIInfo(n, totalBlocks);
+        }
+
+        function easeInOutCubic(x) {
+            return x < 0.5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2;
+        }
+
+        function animate() {
+            requestAnimationFrame(animate);
+
+            // Phase 1 (0.0~1.0): 큐브 -> L자 펼침
+            // Phase 2 (1.0~2.0): L자 -> 목표 위치 비행
+            const stepSize = 0.02;
+
+            groups.forEach((group) => {
+                let { animProgress, animTarget, localIndex } = group.userData;
+
+                if (animProgress !== animTarget) {
+                    if (animProgress < animTarget) {
+                        animProgress = Math.min(animProgress + stepSize, animTarget);
+                    } else {
+                        animProgress = Math.max(animProgress - stepSize, animTarget);
+                    }
+                    group.userData.animProgress = animProgress;
+
+                    group.children.forEach(mesh => {
+                        const { worldCube, worldL, worldTarget, cy } = mesh.userData;
+                        
+                        if (animProgress <= 1.0) {
+                            // Phase 1: 큐브 해체 및 평면 L자 조립
+                            const t = easeInOutCubic(animProgress);
+                            mesh.position.lerpVectors(worldCube, worldL, t);
+                            // 블록들이 바닥으로 떨어지며 자연스럽게 흩어지는 효과
+                            const dropArc = Math.sin(t * Math.PI) * 0.5 * (cy + 1);
+                            mesh.position.y += dropArc;
+                        } else {
+                            // Phase 2: 완성된 L자 형태 유지하며 타겟으로 비행
+                            const t = easeInOutCubic(animProgress - 1.0);
+                            mesh.position.lerpVectors(worldL, worldTarget, t);
+                            // 공중으로 포물선을 그리며 비행
+                            const distance = worldL.distanceTo(worldTarget);
+                            const flyArc = Math.sin(t * Math.PI) * (distance * 0.15 + localIndex * 0.5);
+                            mesh.position.y += flyArc;
+                        }
+                    });
+                }
+            });
+
+            if (hitBoxMesh) {
+                raycaster.setFromCamera(mouse, camera);
+                const intersects = raycaster.intersectObject(hitBoxMesh);
+                const isHovered = intersects.length > 0 && currentStep === currentN;
+                
+                const targetOpacity = isHovered ? 0.12 : 0;
+                const edgeOpacity = isHovered ? 0.6 : 0;
+                targetBoxMesh.material.opacity += (targetOpacity - targetBoxMesh.material.opacity) * 0.1;
+                edgesHelper.material.opacity += (edgeOpacity - edgesHelper.material.opacity) * 0.1;
+
+                if (isHovered) {
+                    document.getElementById('label-w').style.opacity = '0.75';
+                    document.getElementById('label-d').style.opacity = '0.75';
+                    
+                    const Sn = (currentN * (currentN + 1)) / 2;
+                    updateLabelPos('label-w', new THREE.Vector3(targetCenter.x, targetCenter.y, targetCenter.z + Sn/2));
+                    updateLabelPos('label-d', new THREE.Vector3(targetCenter.x + Sn/2, targetCenter.y, targetCenter.z));
+                } else {
+                    document.getElementById('label-w').style.opacity = '0';
+                    document.getElementById('label-d').style.opacity = '0';
+                }
+            }
+
+            controls.update();
+            renderer.render(scene, camera);
+        }
+
+        function updateLabelPos(id, worldPos) {
+            const vec = worldPos.clone().project(camera);
+            const x = (vec.x * 0.5 + 0.5) * window.innerWidth;
+            const y = (vec.y * -0.5 + 0.5) * window.innerHeight;
+            const el = document.getElementById(id);
+            el.style.left = `${x}px`;
+            el.style.top = `${y}px`;
+        }
+
+        function onWindowResize() {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        }
+
+        function clearAutoAnim() {
+            if (autoAnimInterval) {
+                clearInterval(autoAnimInterval);
+                autoAnimInterval = null;
+            }
+        }
+
+        function updateControlsUI() {
+            const btnAssemble = document.getElementById('btn-step-assemble');
+            const btnDisassemble = document.getElementById('btn-step-disassemble');
+
+            if (currentStep < currentN) {
+                btnAssemble.textContent = `${currentStep + 1}³ 조립하기`;
+                btnAssemble.disabled = false;
+            } else {
+                btnAssemble.textContent = `조립 완료`;
+                btnAssemble.disabled = true;
+            }
+
+            if (currentStep > 0) {
+                btnDisassemble.textContent = `${currentStep}³ 분해하기`;
+                btnDisassemble.disabled = false;
+                document.getElementById('val-gnomon').textContent = Math.pow(currentStep, 3);
+            } else {
+                btnDisassemble.textContent = `분해 완료`;
+                btnDisassemble.disabled = true;
+                document.getElementById('val-gnomon').textContent = "0";
+            }
+        }
+
+        function setupUI() {
+            const btnNInc = document.getElementById('btn-n-inc');
+            const btnNDec = document.getElementById('btn-n-dec');
+            const nDisplay = document.getElementById('n-display');
+            
+            const btnAssemble = document.getElementById('btn-step-assemble');
+            const btnDisassemble = document.getElementById('btn-step-disassemble');
+            const btnAllAssemble = document.getElementById('btn-all-assemble');
+            const btnAllDisassemble = document.getElementById('btn-all-disassemble');
+
+            const btnToggleUI = document.getElementById('btn-toggle-ui');
+            const uiTop = document.getElementById('ui-collapsible-top');
+            const uiBottom = document.getElementById('ui-collapsible-bottom');
+            const iconCollapse = document.getElementById('icon-collapse');
+            const iconExpand = document.getElementById('icon-expand');
+            
+            let isUIMinimized = false;
+
+            btnToggleUI.addEventListener('click', () => {
+                isUIMinimized = !isUIMinimized;
+                if (isUIMinimized) {
+                    uiTop.classList.add('hidden');
+                    uiBottom.classList.add('hidden');
+                    iconCollapse.classList.add('hidden');
+                    iconExpand.classList.remove('hidden');
+                } else {
+                    uiTop.classList.remove('hidden');
+                    uiBottom.classList.remove('hidden');
+                    iconCollapse.classList.remove('hidden');
+                    iconExpand.classList.add('hidden');
+                }
+            });
+
+            btnNInc.addEventListener('click', () => {
+                if (currentN < 6) {
+                    currentN++;
+                    nDisplay.textContent = currentN;
+                    createModel(currentN);
+                }
+            });
+
+            btnNDec.addEventListener('click', () => {
+                if (currentN > 1) {
+                    currentN--;
+                    nDisplay.textContent = currentN;
+                    createModel(currentN);
+                }
+            });
+
+            // 0 -> 2 (큐브 -> L자 -> 타겟)
+            btnAssemble.addEventListener('click', () => {
+                clearAutoAnim();
+                if (currentStep < currentN) {
+                    groups[currentStep].userData.animTarget = 2;
+                    currentStep++;
+                    updateControlsUI();
+                }
+            });
+
+            // 2 -> 0 (타겟 -> L자 -> 큐브)
+            btnDisassemble.addEventListener('click', () => {
+                clearAutoAnim();
+                if (currentStep > 0) {
+                    currentStep--;
+                    groups[currentStep].userData.animTarget = 0;
+                    updateControlsUI();
+                }
+            });
+
+            btnAllAssemble.addEventListener('click', () => {
+                clearAutoAnim();
+                autoAnimInterval = setInterval(() => {
+                    if (currentStep < currentN) {
+                        groups[currentStep].userData.animTarget = 2;
+                        currentStep++;
+                        updateControlsUI();
+                    } else {
+                        clearAutoAnim();
+                    }
+                }, 800); // 2단계 애니메이션이 볼 수 있게 간격을 넓힘
+            });
+
+            btnAllDisassemble.addEventListener('click', () => {
+                clearAutoAnim();
+                autoAnimInterval = setInterval(() => {
+                    if (currentStep > 0) {
+                        currentStep--;
+                        groups[currentStep].userData.animTarget = 0;
+                        updateControlsUI();
+                    } else {
+                        clearAutoAnim();
+                    }
+                }, 800);
+            });
+        }
+
+        function updateUIInfo(n, totalBlocks) {
+            const Sn = (n * (n + 1)) / 2;
+            document.getElementById('val-total').textContent = totalBlocks;
+            document.getElementById('val-side').textContent = Sn;
+            document.getElementById('val-area').textContent = Sn * Sn;
+        }
+    </script>
+</body>
+</html>
