@@ -27,7 +27,7 @@
         
         button:disabled { opacity: 0.5; cursor: not-allowed; }
         
-        /* 3D 라벨용 스타일 추가 */
+        /* 3D 라벨용 스타일 */
         .dim-label {
             position: absolute;
             background: rgba(15, 23, 42, 0.4);
@@ -43,16 +43,46 @@
             backdrop-filter: blur(2px);
             white-space: nowrap;
         }
+
+        /* 개별 블록 Σk² 라벨: 배경 및 글자 투명도 낮춤 */
+        .block-label {
+            position: absolute;
+            background: rgba(0, 0, 0, 0.25);
+            color: rgba(255, 255, 255, 0.6);
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-weight: bold;
+            font-size: 0.85rem;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            transform: translate(-50%, -50%);
+            transition: opacity 0.2s;
+            pointer-events: none;
+            backdrop-filter: blur(1px);
+            white-space: nowrap;
+        }
     </style>
 </head>
 <body>
     <div id="canvas-container"></div>
+
+    <!-- 완성 시 표시될 수식 오버레이 (위치를 3D 객체에 맞추기 위해 중앙 고정 클래스 제거 및 transform 추가) -->
+    <div id="formula-overlay" class="absolute z-30 text-lg md:text-2xl font-bold text-white bg-black/50 px-6 py-4 rounded-xl opacity-0 transition-opacity duration-500 pointer-events-none backdrop-blur-sm border border-white/20" style="transform: translate(-50%, -50%);">
+        6∑k² = n(n+1)(2n+1)
+    </div>
 
     <!-- 3D 캔버스 위에 표시될 길이 라벨 컨테이너 -->
     <div id="labels-container" class="pointer-events-none absolute inset-0 z-20 overflow-hidden">
         <div id="label-w" class="dim-label opacity-0"></div>
         <div id="label-h" class="dim-label opacity-0"></div>
         <div id="label-d" class="dim-label opacity-0"></div>
+        
+        <!-- 미조립 개별 블록 라벨 -->
+        <div id="block-label-0" class="block-label opacity-0">Σk²</div>
+        <div id="block-label-1" class="block-label opacity-0">Σk²</div>
+        <div id="block-label-2" class="block-label opacity-0">Σk²</div>
+        <div id="block-label-3" class="block-label opacity-0">Σk²</div>
+        <div id="block-label-4" class="block-label opacity-0">Σk²</div>
+        <div id="block-label-5" class="block-label opacity-0">Σk²</div>
     </div>
 
     <div id="ui-layer">
@@ -60,15 +90,14 @@
             <div class="flex justify-between items-center mb-1">
                 <h1 class="text-xl font-bold text-white">∑k² 시각적 증명</h1>
                 <button id="btn-toggle-ui" class="text-gray-400 hover:text-white focus:outline-none" title="UI 최소화/최대화">
-                    <svg id="icon-collapse" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
-                    <svg id="icon-expand" class="w-5 h-5 hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7"></path></svg>
+                    <svg id="icon-collapse" class="w-5 h-5 hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7"></path></svg>
+                    <svg id="icon-expand" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
                 </button>
             </div>
             
-            <div id="ui-collapsible-top">
+            <div id="ui-collapsible-top" class="hidden">
                 <p class="text-xs text-gray-400 mb-4">6개의 직각 피라미드가 원형을 유지하며 맞물립니다.</p>
 
-                <!-- n 값 조절 버튼형 UI -->
                 <div class="mb-4">
                     <div class="flex justify-between items-center mb-2">
                         <label class="text-sm font-semibold">피라미드 크기 (n)</label>
@@ -81,7 +110,7 @@
                 </div>
             </div>
 
-            <!-- 개별 조립/분해 버튼 (항상 표시) -->
+            <!-- 개별 조립/분해 버튼 -->
             <div class="grid grid-cols-2 gap-2 my-2">
                 <button id="btn-step-assemble" class="bg-blue-600 hover:bg-blue-500 transition-colors py-2 rounded text-sm font-bold shadow-lg">
                     1번 조립하기
@@ -91,8 +120,7 @@
                 </button>
             </div>
 
-            <div id="ui-collapsible-bottom">
-                <!-- 모두 조립/분해 버튼 -->
+            <div id="ui-collapsible-bottom" class="hidden">
                 <div class="grid grid-cols-2 gap-2 mb-4 mt-4">
                     <button id="btn-all-assemble" class="bg-blue-800 hover:bg-blue-700 transition-colors py-2 rounded text-sm font-bold shadow-lg border border-blue-500/30">
                         모두 조립
@@ -133,9 +161,7 @@
         let scene, camera, renderer, controls, masterGroup;
         let groups = [];
         
-        // Raycaster 및 목표 박스(호버 효과)용 변수
         const raycaster = new THREE.Raycaster();
-        const mouse = new THREE.Vector2(-1, -1);
         let targetBoxMesh, hitBoxMesh, edgesHelper;
         let targetCenter = new THREE.Vector3();
         
@@ -146,14 +172,16 @@
         }));
 
         let currentN = 3;
-        let currentStep = 0; // 0 (모두 분해됨) ~ 6 (모두 조립됨)
+        let currentStep = 0; 
         let autoAnimInterval = null;
+        let formulaTimeout = null;
 
         window.onload = function() {
             init3D();
             setupUI();
             createModel(currentN);
             animate();
+            setupClickEvent();
         };
 
         function init3D() {
@@ -208,12 +236,6 @@
             masterGroup.rotation.x = -Math.PI / 2;
             scene.add(masterGroup);
 
-            // 마우스 이동 이벤트 리스너 추가
-            window.addEventListener('mousemove', (e) => {
-                mouse.x = (e.clientX / window.innerWidth) * 2 - 1;
-                mouse.y = -(e.clientY / window.innerHeight) * 2 + 1;
-            });
-
             window.addEventListener('resize', onWindowResize, false);
         }
 
@@ -235,7 +257,6 @@
             clearAutoAnim();
             updateControlsUI();
             
-            // 기존 생성된 타겟 박스 및 헬퍼 제거
             if (targetBoxMesh) scene.remove(targetBoxMesh);
             if (hitBoxMesh) scene.remove(hitBoxMesh);
             if (edgesHelper) scene.remove(edgesHelper);
@@ -275,7 +296,6 @@
                 group.position.copy(startPos);
                 group.quaternion.copy(startQuat);
                 
-                // 각 그룹별로 독립적인 애니메이션 진행률과 목표값 저장
                 group.userData = { 
                     startPos, targetPos, startQuat, targetQuat, localIndex: p,
                     animProgress: 0, animTarget: 0 
@@ -299,7 +319,6 @@
                 groups.push(group);
             }
 
-            // --- 조립 완료 상태의 중심점(바운딩 박스) 계산 ---
             groups.forEach(g => {
                 g.position.copy(g.userData.targetPos);
                 g.quaternion.copy(g.userData.targetQuat);
@@ -309,14 +328,13 @@
             const box3 = new THREE.Box3().setFromObject(masterGroup);
             box3.getCenter(targetCenter);
             
-            // 블록 원위치 복구
             groups.forEach(g => {
                 g.position.copy(g.userData.startPos);
                 g.quaternion.copy(g.userData.startQuat);
             });
             masterGroup.updateMatrixWorld(true);
 
-            // 호버 시 나타날 반투명 목표 직육면체 (크기: n x 2n+1 x n+1)
+            // 반투명 상자 및 모서리 헬퍼 (초기 투명도 0으로 설정하여 숨김 처리)
             const targetGeo = new THREE.BoxGeometry(n, 2 * n + 1, n + 1);
             targetBoxMesh = new THREE.Mesh(
                 targetGeo,
@@ -325,7 +343,6 @@
             targetBoxMesh.position.copy(targetCenter);
             scene.add(targetBoxMesh);
 
-            // 목표 직육면체의 모서리 와이어프레임
             edgesHelper = new THREE.LineSegments(
                 new THREE.EdgesGeometry(targetGeo),
                 new THREE.LineBasicMaterial({ color: 0x90cdf4, transparent: true, opacity: 0, linewidth: 2 })
@@ -333,7 +350,7 @@
             edgesHelper.position.copy(targetCenter);
             scene.add(edgesHelper);
 
-            // 레이캐스트 충돌 감지용 투명 박스 (마우스 호버 인식 영역)
+            // 클릭 감지용 투명 박스
             hitBoxMesh = new THREE.Mesh(
                 new THREE.BoxGeometry(n + 1, 2 * n + 2, n + 2),
                 new THREE.MeshBasicMaterial({ visible: false })
@@ -341,7 +358,6 @@
             hitBoxMesh.position.copy(targetCenter);
             scene.add(hitBoxMesh);
 
-            // 길이 라벨 텍스트 초기화
             document.getElementById('label-w').textContent = `n = ${n}`;
             document.getElementById('label-h').textContent = `2n+1 = ${2 * n + 1}`;
             document.getElementById('label-d').textContent = `n+1 = ${n + 1}`;
@@ -356,9 +372,10 @@
         function animate() {
             requestAnimationFrame(animate);
 
-            const stepSize = 0.02; // 조립 애니메이션 속도
+            const stepSize = 0.02; 
+            const n = currentN;
 
-            groups.forEach((group) => {
+            groups.forEach((group, i) => {
                 let { animProgress, animTarget, startPos, targetPos, startQuat, targetQuat, localIndex } = group.userData;
 
                 if (animProgress !== animTarget) {
@@ -379,33 +396,42 @@
                         group.position.z += arcHeight;
                     }
                 }
+
+                // 개별 블록의 Σk² 라벨 업데이트
+                const blockLabel = document.getElementById(`block-label-${i}`);
+                if (group.userData.animProgress > 0.95) {
+                    blockLabel.style.opacity = '0';
+                } else {
+                    // 최대 투명도값을 0.5로 낮추어 은은하게 표시
+                    blockLabel.style.opacity = '0.5';
+                    // 피라미드의 로컬 중심(0,0,0)을 월드 좌표계로 변환
+                    const centerPos = new THREE.Vector3(0, 0, 0);
+                    centerPos.applyMatrix4(group.matrixWorld);
+                    updateLabelPos(`block-label-${i}`, centerPos);
+                }
             });
 
-            // 마우스 호버 감지 및 효과 업데이트
+            // 전체 윤곽의 길이 라벨 (조립된 블록이 1개 이상일 때만 노출)
             if (hitBoxMesh) {
-                raycaster.setFromCamera(mouse, camera);
-                const intersects = raycaster.intersectObject(hitBoxMesh);
-                const isHovered = intersects.length > 0;
+                const isAssembling = currentStep > 0;
                 
-                // 목표 박스와 모서리의 투명도를 부드럽게 보간
-                const targetOpacity = isHovered ? 0.12 : 0;
-                const edgeOpacity = isHovered ? 0.6 : 0;
-                targetBoxMesh.material.opacity += (targetOpacity - targetBoxMesh.material.opacity) * 0.1;
-                edgesHelper.material.opacity += (edgeOpacity - edgesHelper.material.opacity) * 0.1;
+                const targetBoxOpacity = isAssembling ? 0.12 : 0;
+                const targetEdgeOpacity = isAssembling ? 0.6 : 0;
+                
+                // 자연스러운 전환을 위해 투명도 보간
+                targetBoxMesh.material.opacity += (targetBoxOpacity - targetBoxMesh.material.opacity) * 0.1;
+                edgesHelper.material.opacity += (targetEdgeOpacity - edgesHelper.material.opacity) * 0.1;
 
-                if (isHovered) {
+                // 수식 오버레이가 3D 직육면체의 정중앙을 따라다니도록 위치 업데이트
+                updateLabelPos('formula-overlay', targetCenter);
+
+                if (isAssembling) {
                     document.getElementById('label-w').style.opacity = '0.75';
                     document.getElementById('label-h').style.opacity = '0.75';
                     document.getElementById('label-d').style.opacity = '0.75';
                     
-                    const n = currentN;
-                    
-                    // 각 모서리의 중심 3D 좌표를 2D 화면 좌표로 투영
-                    // W (가로 n): 바닥면 앞쪽 모서리 중앙
-                    updateLabelPos('label-w', new THREE.Vector3(targetCenter.x, targetCenter.y - (2*n+1)/2, targetCenter.z + (n+1)/2));
-                    // H (높이 2n+1): 우측면 앞쪽 모서리 중앙
-                    updateLabelPos('label-h', new THREE.Vector3(targetCenter.x + n/2, targetCenter.y, targetCenter.z + (n+1)/2));
-                    // D (세로 n+1): 바닥면 우측 모서리 중앙
+                    updateLabelPos('label-w', new THREE.Vector3(targetCenter.x, targetCenter.y - (2*n+1)/2, targetCenter.z - (n+1)/2));
+                    updateLabelPos('label-h', new THREE.Vector3(targetCenter.x - n/2, targetCenter.y, targetCenter.z - (n+1)/2));
                     updateLabelPos('label-d', new THREE.Vector3(targetCenter.x + n/2, targetCenter.y - (2*n+1)/2, targetCenter.z));
                 } else {
                     document.getElementById('label-w').style.opacity = '0';
@@ -418,14 +444,15 @@
             renderer.render(scene, camera);
         }
 
-        // 3D 좌표를 브라우저 픽셀 좌표로 변환하여 DOM 요소 이동
         function updateLabelPos(id, worldPos) {
             const vec = worldPos.clone().project(camera);
             const x = (vec.x * 0.5 + 0.5) * window.innerWidth;
             const y = (vec.y * -0.5 + 0.5) * window.innerHeight;
             const el = document.getElementById(id);
-            el.style.left = `${x}px`;
-            el.style.top = `${y}px`;
+            if(el) {
+                el.style.left = `${x}px`;
+                el.style.top = `${y}px`;
+            }
         }
 
         function onWindowResize() {
@@ -462,6 +489,29 @@
             }
         }
 
+        function setupClickEvent() {
+            window.addEventListener('click', (e) => {
+                if (currentStep === 6 && hitBoxMesh) {
+                    const clickMouse = new THREE.Vector2();
+                    clickMouse.x = (e.clientX / window.innerWidth) * 2 - 1;
+                    clickMouse.y = -(e.clientY / window.innerHeight) * 2 + 1;
+
+                    raycaster.setFromCamera(clickMouse, camera);
+                    const intersects = raycaster.intersectObject(hitBoxMesh);
+
+                    if (intersects.length > 0) {
+                        const overlay = document.getElementById('formula-overlay');
+                        overlay.style.opacity = '1';
+                        
+                        if(formulaTimeout) clearTimeout(formulaTimeout);
+                        formulaTimeout = setTimeout(() => {
+                            overlay.style.opacity = '0';
+                        }, 5000);
+                    }
+                }
+            });
+        }
+
         function setupUI() {
             const btnNInc = document.getElementById('btn-n-inc');
             const btnNDec = document.getElementById('btn-n-dec');
@@ -472,14 +522,13 @@
             const btnAllAssemble = document.getElementById('btn-all-assemble');
             const btnAllDisassemble = document.getElementById('btn-all-disassemble');
 
-            // UI 토글 요소
             const btnToggleUI = document.getElementById('btn-toggle-ui');
             const uiTop = document.getElementById('ui-collapsible-top');
             const uiBottom = document.getElementById('ui-collapsible-bottom');
             const iconCollapse = document.getElementById('icon-collapse');
             const iconExpand = document.getElementById('icon-expand');
             
-            let isUIMinimized = false;
+            let isUIMinimized = true;
 
             btnToggleUI.addEventListener('click', () => {
                 isUIMinimized = !isUIMinimized;
@@ -496,7 +545,6 @@
                 }
             });
 
-            // N 크기 조절
             btnNInc.addEventListener('click', () => {
                 if (currentN < 6) {
                     currentN++;
@@ -513,7 +561,6 @@
                 }
             });
 
-            // 개별 단계 조립
             btnAssemble.addEventListener('click', () => {
                 clearAutoAnim();
                 if (currentStep < 6) {
@@ -523,17 +570,19 @@
                 }
             });
 
-            // 개별 단계 분해
             btnDisassemble.addEventListener('click', () => {
                 clearAutoAnim();
                 if (currentStep > 0) {
                     currentStep--;
                     groups[currentStep].userData.animTarget = 0;
                     updateControlsUI();
+                    
+                    const overlay = document.getElementById('formula-overlay');
+                    overlay.style.opacity = '0';
+                    if(formulaTimeout) clearTimeout(formulaTimeout);
                 }
             });
 
-            // 모두 조립 (순차적 연출)
             btnAllAssemble.addEventListener('click', () => {
                 clearAutoAnim();
                 autoAnimInterval = setInterval(() => {
@@ -544,12 +593,15 @@
                     } else {
                         clearAutoAnim();
                     }
-                }, 250); // 250ms 간격으로 순차 조립
+                }, 250); 
             });
 
-            // 모두 분해 (순차적 연출)
             btnAllDisassemble.addEventListener('click', () => {
                 clearAutoAnim();
+                const overlay = document.getElementById('formula-overlay');
+                overlay.style.opacity = '0';
+                if(formulaTimeout) clearTimeout(formulaTimeout);
+
                 autoAnimInterval = setInterval(() => {
                     if (currentStep > 0) {
                         currentStep--;
@@ -558,7 +610,7 @@
                     } else {
                         clearAutoAnim();
                     }
-                }, 250); // 250ms 간격으로 순차 분해
+                }, 250); 
             });
         }
 
