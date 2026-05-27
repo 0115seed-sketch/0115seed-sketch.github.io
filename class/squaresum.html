@@ -513,11 +513,23 @@
         }
 
         function setupClickEvent() {
-            window.addEventListener('click', (e) => {
+            // 마우스 클릭 및 모바일 터치를 모두 처리하는 공통 함수
+            const handleInteraction = (e) => {
                 if (currentStep === 6 && hitBoxMesh) {
+                    let clientX, clientY;
+                    
+                    // 이벤트 타입에 따라 좌표 추출
+                    if (e.type === 'touchstart') {
+                        clientX = e.touches[0].clientX;
+                        clientY = e.touches[0].clientY;
+                    } else {
+                        clientX = e.clientX;
+                        clientY = e.clientY;
+                    }
+
                     const clickMouse = new THREE.Vector2();
-                    clickMouse.x = (e.clientX / window.innerWidth) * 2 - 1;
-                    clickMouse.y = -(e.clientY / window.innerHeight) * 2 + 1;
+                    clickMouse.x = (clientX / window.innerWidth) * 2 - 1;
+                    clickMouse.y = -(clientY / window.innerHeight) * 2 + 1;
 
                     raycaster.setFromCamera(clickMouse, camera);
                     const intersects = raycaster.intersectObject(hitBoxMesh);
@@ -532,7 +544,12 @@
                         }, 5000);
                     }
                 }
-            });
+            };
+
+            // 데스크톱용 클릭 이벤트
+            window.addEventListener('click', handleInteraction);
+            // 모바일용 터치 이벤트 추가 (passive 옵션을 주어 스크롤 성능 저하 방지)
+            window.addEventListener('touchstart', handleInteraction, { passive: true });
         }
 
         function setupUI() {
