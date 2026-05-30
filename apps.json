@@ -199,6 +199,16 @@
       "visible": true,
       "id": 20,
       "order": 20
+    },
+    {
+      "name": "여행 플래너",
+      "category": "흥미로운 앱",
+      "description": "여행 일정을 정리할 수 있는 앱",
+      "url": "https://0115seed-sketch.github.io/velanner/",
+      "icon": "fas fa-map",
+      "visible": true,
+      "id": 21,
+      "order": 21
     }
   ]
 }
