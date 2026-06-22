@@ -100,7 +100,11 @@
         const result = await res.json();
 
         if (result.result === "success") {
-          statusEl.textContent = `✅ ${result.count}건이 스프레드시트에 저장되었습니다!`;
+          let msg = `✅ ${result.saved}건 저장 완료.`;
+          if (result.skipped > 0) {
+            msg += `\n⚠️ 중복 ${result.skipped}건 건너뜀:\n` + result.skippedItems.join("\n");
+          }
+          statusEl.textContent = msg;
           statusEl.className = "success";
           textarea.value = "";
           previewArea.style.display = "none";
