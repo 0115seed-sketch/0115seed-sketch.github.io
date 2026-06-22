@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>가계부 입력</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Segoe UI', sans-serif; background: #f0f4f8; display: flex; justify-content: center; align-items: center; min-height: 100vh; padding: 20px; }
+    .card { background: white; border-radius: 16px; padding: 32px; width: 100%; max-width: 600px; box-shadow: 0 4px 24px rgba(0,0,0,0.1); }
+    h1 { font-size: 1.5rem; color: #1a1a2e; margin-bottom: 8px; }
+    p { color: #666; font-size: 0.9rem; margin-bottom: 24px; }
+    textarea { width: 100%; height: 200px; border: 2px solid #e2e8f0; border-radius: 10px; padding: 14px; font-size: 0.85rem; font-family: monospace; resize: vertical; outline: none; transition: border-color 0.2s; }
+    textarea:focus { border-color: #4f46e5; }
+    button { width: 100%; margin-top: 16px; padding: 14px; background: #4f46e5; color: white; border: none; border-radius: 10px; font-size: 1rem; font-weight: 600; cursor: pointer; transition: background 0.2s; }
+    button:hover { background: #4338ca; }
+    button:disabled { background: #a5b4fc; cursor: not-allowed; }
+    #status { margin-top: 16px; padding: 14px; border-radius: 10px; font-size: 0.9rem; display: none; }
+    .success { background: #d1fae5; color: #065f46; display: block !important; }
+    .error   { background: #fee2e2; color: #991b1b; display: block !important; }
+    .preview { margin-top: 20px; }
+    .preview h3 { font-size: 0.95rem; color: #374151; margin-bottom: 8px; }
+    table { width: 100%; border-collapse: collapse; font-size: 0.8rem; }
+    th { background: #f8fafc; padding: 8px; text-align: left; border-bottom: 2px solid #e2e8f0; color: #374151; }
+    td { padding: 8px; border-bottom: 1px solid #f1f5f9; color: #4b5563; }
+    tr:last-child td { border-bottom: none; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h1>💰 가계부 입력</h1>
+    <p>Gemini에서 받은 JSON을 붙여넣고 [스프레드시트에 저장]을 누르세요.</p>
+
+    <textarea id="jsonInput" placeholder='[
+  {"일자": "2026년 06월 22일 월요일", "소비처/입금처": "스타벅스", "결제수단/출금처": "카카오페이", "금액": -6500, "카테고리": "간식", "포함여부": "O"}
+]'></textarea>
+
+    <div id="previewArea" class="preview" style="display:none;">
+      <h3>📋 미리보기</h3>
+      <div id="previewTable"></div>
+    </div>
+
+    <button id="submitBtn" onclick="submit()">스프레드시트에 저장</button>
+    <div id="status"></div>
+  </div>
+
+  <script>
+    // ⬇️ 여기에 Apps Script 웹앱 URL을 붙여넣으세요
+    const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwvMsLoXwIhq46jCU9sWMxKxrX5371F-wNlmVdr4BrohXI_9Rpfv91u7hUVRF4Uvr0/exec";
+
+    const textarea = document.getElementById("jsonInput");
+    const previewArea = document.getElementById("previewArea");
+    const previewTable = document.getElementById("previewTable");
+
+    textarea.addEventListener("input", showPreview);
+
+    function showPreview() {
+      try {
+        const data = JSON.parse(textarea.value.trim());
+        const rows = Array.isArray(data) ? data : [data];
+        if (rows.length === 0) { previewArea.style.display = "none"; return; }
+
+        const keys = ["일자", "소비처/입금처", "결제수단/출금처", "금액", "카테고리", "포함여부"];
+        let html = "<table><thead><tr>" + keys.map(k => `<th>${k}</th>`).join("") + "</tr></thead><tbody>";
+        rows.forEach(row => {
+          html += "<tr>" + keys.map(k => `<td>${row[k] ?? ""}</td>`).join("") + "</tr>";
+        });
+        html += "</tbody></table>";
+        previewTable.innerHTML = html;
+        previewArea.style.display = "block";
+      } catch {
+        previewArea.style.display = "none";
+      }
+    }
+
+    async function submit() {
+      const statusEl = document.getElementById("status");
+      const btn = document.getElementById("submitBtn");
+      statusEl.className = "";
+      statusEl.style.display = "none";
+
+      let data;
+      try {
+        data = JSON.parse(textarea.value.trim());
+      } catch {
+        statusEl.textContent = "❌ JSON 형식이 올바르지 않습니다. Gemini 출력을 다시 확인해 주세요.";
+        statusEl.className = "error";
+        return;
+      }
+
+      btn.disabled = true;
+      btn.textContent = "저장 중...";
+
+      try {
+        const res = await fetch(APPS_SCRIPT_URL, {
+          method: "POST",
+          body: JSON.stringify(data),
+          headers: { "Content-Type": "application/json" }
+        });
+        const result = await res.json();
+
+        if (result.result === "success") {
+          statusEl.textContent = `✅ ${result.count}건이 스프레드시트에 저장되었습니다!`;
+          statusEl.className = "success";
+          textarea.value = "";
+          previewArea.style.display = "none";
+        } else {
+          throw new Error(result.message);
+        }
+      } catch (err) {
+        statusEl.textContent = "❌ 저장 실패: " + err.message;
+        statusEl.className = "error";
+      } finally {
+        btn.disabled = false;
+        btn.textContent = "스프레드시트에 저장";
+      }
+    }
+  </script>
+</body>
+</html>
