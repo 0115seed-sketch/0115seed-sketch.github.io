@@ -238,7 +238,7 @@
   <div id="page-ledger" class="page">
     <div class="dash-header">
       <h2>📋 내역</h2>
-      <button class="refresh-btn" onclick="refreshLedger()">🔄 새로고침</button>
+      <button class="refresh-btn" onclick="loadData()">🔄 새로고침</button>
     </div>
     <p class="dash-status" id="ledgerStatus">새로고침을 눌러 데이터를 불러오세요</p>
 
@@ -288,6 +288,41 @@
     </div>
   </div>
 
+  <!-- 💳 자산/계좌 페이지 -->
+  <div id="page-accounts" class="page">
+    <div class="dash-header">
+      <h2>💳 자산</h2>
+      <button class="refresh-btn" onclick="loadData()">🔄 새로고침</button>
+    </div>
+    <p class="dash-status" id="accountStatus">새로고침을 눌러 데이터를 불러오세요</p>
+
+    <!-- 총 자산 요약 -->
+    <div class="summary-card" style="margin-bottom: 16px; text-align: center; padding: 24px;">
+      <div class="label" style="font-size: 0.85rem; margin-bottom: 8px;">현재 총 자산</div>
+      <div class="value neutral" id="totalAsset" style="font-size: 1.8rem; color: #4f46e5; font-weight: 800;">0원</div>
+    </div>
+
+    <!-- 계좌 리스트 -->
+    <div class="chart-card">
+      <div class="ledger-info">
+        <h3>🏦 보유 계좌 현황</h3>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>계좌명</th>
+              <th style="text-align:right">현재잔액</th>
+            </tr>
+          </thead>
+          <tbody id="accountBody">
+            <tr><td colspan="2" style="text-align:center;color:#9ca3af;padding:20px;">새로고침을 눌러 불러오세요</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
   <!-- 하단 내비게이션 -->
   <nav class="bottom-nav">
     <button class="nav-btn active" id="nav-input" onclick="switchPage('input')">
@@ -302,11 +337,20 @@
       <span class="icon">📋</span>
       <span>내역</span>
     </button>
+    <button class="nav-btn" id="nav-accounts" onclick="switchPage('accounts')">
+      <span class="icon">💳</span>
+      <span>자산</span>
+    </button>
   </nav>
 
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
   <script>
+    // 본인의 Apps Script URL로 대체하세요.
     const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwvMsLoXwIhq46jCU9sWMxKxrX5371F-wNlmVdr4BrohXI_9Rpfv91u7hUVRF4Uvr0/exec";
+
+    // 데이터 저장 변수
+    let allData = null;
+    let allAccounts = null;
 
     // ─── 페이지 전환 ─────────────────────────────────
     function switchPage(name) {
@@ -314,7 +358,10 @@
       document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
       document.getElementById('page-' + name).classList.add('active');
       document.getElementById('nav-' + name).classList.add('active');
+      
+      // 페이지 이동 시 데이터가 있으면 다시 렌더링
       if (name === 'ledger' && allData) renderLedger();
+      if (name === 'accounts' && allAccounts) renderAccounts();
     }
 
     function toggleCatFilter() {
@@ -323,6 +370,65 @@
       const opening = panel.style.display === 'none';
       panel.style.display = opening ? 'block' : 'none';
       btn.classList.toggle('active', opening);
+    }
+
+    // ─── 데이터 공통 로드 (대시보드, 내역, 자산 한 번에 처리) ───
+    async function loadData() {
+      // 모든 페이지의 상태 텍스트 업데이트
+      const statusEls = [
+        document.getElementById('dashStatus'), 
+        document.getElementById('ledgerStatus'), 
+        document.getElementById('accountStatus')
+      ].filter(Boolean);
+      
+      statusEls.forEach(el => el.textContent = '불러오는 중...');
+      
+      try {
+        const res = await fetch(APPS_SCRIPT_URL);
+        const result = await res.json();
+        
+        if (result.result !== 'success') throw new Error(result.message);
+        
+        // 데이터 할당
+        allData = result.data;
+        allAccounts = result.accounts; // 구글 시트의 계좌 데이터 저장
+        
+        // 렌더링 함수 각각 호출
+        renderDashboard(allData);
+        renderLedger();
+        renderAccounts();
+        
+        const timeStr = `마지막 업데이트: ${new Date().toLocaleTimeString('ko-KR')}`;
+        statusEls.forEach(el => el.textContent = timeStr);
+      } catch (err) {
+        statusEls.forEach(el => el.textContent = '❌ 불러오기 실패: ' + err.message);
+      }
+    }
+
+    // ─── 자산(계좌) 렌더링 ─────────────────────────────
+    function renderAccounts() {
+      if (!allAccounts) return;
+      
+      const tbody = document.getElementById('accountBody');
+      const totalAssetEl = document.getElementById('totalAsset');
+      
+      if (allAccounts.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="2" style="text-align:center;color:#9ca3af;padding:20px;">표시할 계좌 데이터가 없습니다.</td></tr>';
+        totalAssetEl.textContent = '0원';
+        return;
+      }
+      
+      let totalAsset = 0;
+      
+      tbody.innerHTML = allAccounts.map(acc => {
+        totalAsset += acc.balance;
+        return `<tr>
+          <td style="font-weight: 500; color: #374151;">${acc.name}</td>
+          <td style="text-align:right; font-weight:600; color: #1a1a2e;">${acc.balance.toLocaleString('ko-KR')}원</td>
+        </tr>`;
+      }).join('');
+      
+      totalAssetEl.textContent = `${totalAsset.toLocaleString('ko-KR')}원`;
     }
 
     // ─── 입력 폼 ─────────────────────────────────────
@@ -395,7 +501,6 @@
 
     // ─── 대시보드 ─────────────────────────────────────
     const CATEGORIES = ['식사','간식','잡화','의류','유흥','의료·건강·피트니스','주거','통신','보험','미용','교통','여행','경조사','카테고리 없음','이체','급여','카드대금'];
-    let allData = null;
     let selectedCats = new Set(CATEGORIES);
     let barChartInstance = null;
     let catChartInstance = null;
@@ -423,22 +528,7 @@
       if (allData) renderDashboard(allData);
     }
 
-    async function loadData() {
-      const statusEl = document.getElementById('dashStatus');
-      statusEl.textContent = '불러오는 중...';
-      try {
-        const res = await fetch(APPS_SCRIPT_URL);
-        const result = await res.json();
-        if (result.result !== 'success') throw new Error(result.message);
-        allData = result.data;
-        renderDashboard(allData);
-        statusEl.textContent = `마지막 업데이트: ${new Date().toLocaleTimeString('ko-KR')}`;
-      } catch (err) {
-        statusEl.textContent = '❌ 불러오기 실패: ' + err.message;
-      }
-    }
-
-    // 날짜 값 → "YYYY-MM" 변환 (한국어 · ISO · Date 객체 · GAS Date 문자열 모두 처리)
+    // 날짜 값 → "YYYY-MM" 변환
     const _MO = {Jan:'01',Feb:'02',Mar:'03',Apr:'04',May:'05',Jun:'06',Jul:'07',Aug:'08',Sep:'09',Oct:'10',Nov:'11',Dec:'12'};
     function toYM(val) {
       if (!val) return '';
@@ -449,7 +539,6 @@
       if (k) return `${k[1]}-${k[2].padStart(2, '0')}`;
       const i = s.match(/^(\d{4})-(\d{2})/);
       if (i) return `${i[1]}-${i[2]}`;
-      // GAS가 Date.toString()으로 반환하는 경우: "Mon Jun 22 2026 00:00:00 GMT+0900"
       const e = s.match(/(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\s+\d+\s+(\d{4})/);
       if (e && _MO[e[1]]) return `${e[2]}-${_MO[e[1]]}`;
       return '';
@@ -480,7 +569,7 @@
       document.getElementById('thisMonthIncome').textContent =
         thisMonthInc ? `+${thisMonthInc.toLocaleString('ko-KR')}원` : '0원';
 
-      // 카테고리별 지출 가로 막대차트
+      // 카테고리별 지출
       const catMap = {};
       expenses.forEach(r => {
         const cat = String(r['카테고리'] || '카테고리 없음').trim() || '카테고리 없음';
@@ -517,7 +606,7 @@
         }
       });
 
-      // 월별 지출 세로 막대차트
+      // 월별 지출
       const monthMap = {};
       expenses.forEach(r => {
         const key = toYM(r['일자']);
@@ -564,7 +653,6 @@
       if (k) return `${k[1]}-${k[2].padStart(2,'0')}-${k[3].padStart(2,'0')}`;
       const i = s.match(/^(\d{4}-\d{2}-\d{2})/);
       if (i) return i[1];
-      // GAS Date.toString() 형식: "Mon Jun 22 2026 00:00:00 GMT+0900"
       const e = s.match(/(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\s+(\d{1,2})\s+(\d{4})/);
       if (e && _MO[e[1]]) return `${e[3]}-${_MO[e[1]]}-${e[2].padStart(2,'0')}`;
       return '';
@@ -588,21 +676,6 @@
       document.getElementById('dateMonthPick').style.display = mode === 'month-pick' ? 'block' : 'none';
       document.getElementById('dateRange').style.display     = mode === 'range'       ? 'block' : 'none';
       renderLedger();
-    }
-
-    async function refreshLedger() {
-      const statusEl = document.getElementById('ledgerStatus');
-      statusEl.textContent = '불러오는 중...';
-      try {
-        const res = await fetch(APPS_SCRIPT_URL);
-        const result = await res.json();
-        if (result.result !== 'success') throw new Error(result.message);
-        allData = result.data;
-        renderLedger();
-        statusEl.textContent = `마지막 업데이트: ${new Date().toLocaleTimeString('ko-KR')}`;
-      } catch (err) {
-        statusEl.textContent = '❌ 불러오기 실패: ' + err.message;
-      }
     }
 
     function renderLedger() {
@@ -652,7 +725,7 @@
       }).join('');
     }
 
-    // 속기화
+    // 초기화 실행
     buildCatFilter();
     (() => {
       const n = new Date();
