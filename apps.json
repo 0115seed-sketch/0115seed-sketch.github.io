@@ -97,7 +97,7 @@
       "description": "2025년 최신 AI 모델의 발전사와 분야별 최고 성능 모델을 한눈에 확인하세요.",
       "url": "https://0115seed-sketch.github.io/first-html/AI타임라인.html",
       "icon": "fas fa-brain",
-      "visible": true,
+      "visible": false,
       "order": 10
     },
     {
@@ -209,6 +209,16 @@
       "visible": true,
       "id": 21,
       "order": 21
+    },
+    {
+      "name": "업성고등학교 오늘의 급식",
+      "category": "수업 도구",
+      "description": "업성고등학교 오늘의 급식",
+      "url": "https://0115seed-sketch.github.io/meal-app2/",
+      "icon": "fas fa-birthday-cake",
+      "visible": true,
+      "id": 22,
+      "order": 22
     }
   ]
 }
