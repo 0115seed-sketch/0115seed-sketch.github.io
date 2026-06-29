@@ -2,7 +2,7 @@
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
-    <title>오늘의 중식"{today}"</title>
+    <title>오늘의 중식</title>
 </head>
 <body>
     <pre id="meal-content">중식 정보를 불러오는 중입니다...</pre>
@@ -27,7 +27,7 @@
                     
                     // <br/> 태그를 일반 줄바꿈으로 정제
                     let cleanedMeal = mealInfo.split('<br/>').join('\n');
-                    document.getElementById('meal-content').textContent = `--- 오늘의 중식 ---\n\n${cleanedMeal}`;
+                    document.getElementById('meal-content').textContent = `--- 오늘의 중식"{today}" ---\n\n${cleanedMeal}`;
                 } else {
                     // 주말이거나 중식 정보가 없는 경우의 예외 처리
                     document.getElementById('meal-content').textContent = "오늘의 중식 정보가 없습니다.";
