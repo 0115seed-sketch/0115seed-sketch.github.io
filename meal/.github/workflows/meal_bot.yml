@@ -1,0 +1,43 @@
+name: Auto Update School Meal
+
+on:
+  schedule:
+    # 매일 UTC 21:00에 실행 (한국 표준시 KST 기준 오전 6:00에 빌드 진행)
+    - cron: '0 21 * * *'
+  workflow_dispatch: # 필요할 때 GitHub 웹 UI에서 수동으로 즉시 실행 가능하도록 허용
+
+permissions:
+  contents: write
+
+jobs:
+  update-meal:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install requests Pillow
+
+      - name: Download Korean Font
+        run: |
+          # 텍스트 이미지 렌더링 시 한글 깨짐 방지를 위해 구글 폰트에서 나눔고딕 다운로드
+          curl -L -o NanumGothic.ttf https://github.com/google/fonts/raw/main/ofl/nanumgothic/NanumGothic-Regular.ttf
+
+      - name: Run meal update script
+        run: python update_meal.py
+
+      - name: Commit and Push changes
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git add meal/index.html meal/images/*.png
+          # 코드 변경점이 존재할 때만 커밋 및 원격 저장을 수행하여 불필요한 오류 빌드 방지
+          git diff-index --quiet HEAD || (git commit -m "Auto-update school meal: $(date -u -d '+9 hours' +'%Y-%m-%d')" && git push)
